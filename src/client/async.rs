@@ -8,4 +8,3 @@ impl Client {
         unimplemented!("async client not implemented yet")
     }
 }
-

@@ -1,10 +1,22 @@
-use serde::Serialize;
-use std::error::Error;
+use crate::client::method::{Encoding, Execute, HttpMethod, SlackMethod};
 
 pub struct Client {
     client: reqwest::blocking::Client,
     base_url: String,
     token: String,
+}
+
+#[derive(Debug)]
+pub enum Error {
+    Http(reqwest::Error),
+}
+
+pub type Result<T> = std::result::Result<T, Error>;
+
+impl From<reqwest::Error> for Error {
+    fn from(e: reqwest::Error) -> Self {
+        Error::Http(e)
+    }
 }
 
 impl Client {
@@ -16,25 +28,32 @@ impl Client {
         }
     }
 
-    fn get_url(&self, path: &str) -> String {
+    fn url(&self, path: &str) -> String {
         format!("{}{}", self.base_url, path)
     }
 
-    fn get_path(&self, payload: &T) -> String {
-        // TODO: How to?
+    fn _execute_internal<M: SlackMethod>(&self, method: M) -> Result<M::Response> {
+        let body = method.into_body();
+        let url = self.url(M::PATH);
+        let req = match M::method() {
+            HttpMethod::Post => self.client.post(url),
+            HttpMethod::Get => self.client.get(url),
+        }
+        .bearer_auth(&self.token);
+
+        let resp = match M::encoding() {
+            Encoding::Json => req.json(&body).send()?,
+        };
+
+        let parsed = resp.json::<M::Response>()?;
+        Ok(parsed)
     }
+}
 
-    pub fn post<T: Serialize>(&self, path: &str, payload: &T) -> Result<String, Box<dyn Error>> {
-        let url = self.get_url(path);
+impl Execute for Client {
+    type Error = Error;
 
-        let res = self
-            .client
-            .post(url)
-            .bearer_auth(&self.token)
-            .json(payload)
-            .send()?
-            .text()?;
-
-        Ok(res)
+    fn execute<M: SlackMethod>(&self, method: M) -> Result<M::Response> {
+        self._execute_internal(method)
     }
 }

@@ -1,3 +1,5 @@
+pub mod method;
+
 #[cfg(feature = "blocking")]
 pub mod blocking;
 

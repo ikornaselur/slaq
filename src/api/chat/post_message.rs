@@ -1,114 +1,161 @@
-use serde::Serialize;
-use serde_json::{self, Value};
+use super::Chat;
+use crate::client::method::{Execute, SlackMethod};
+use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
-pub const PATH: &str = "/chat.postMessage";
-
 #[skip_serializing_none]
-#[derive(Default, Debug, Clone, Serialize)]
-pub struct PostMessagePayload {
-    channel: String,
-    // attachments: Option<Vec<Attachment>>,
-    // blocks: Option<Vec<Block>>,
-    icon_emoji: Option<String>,
-    icon_url: Option<String>,
-    link_names: Option<bool>,
-    markdown_text: Option<String>,
-    // metadata: Option<Metadata>,
-    mrkdwn: Option<bool>,
-    parse: Option<String>,
-    reply_broadcast: Option<bool>,
-    text: Option<String>,
-    thread_ts: Option<String>,
-    unfurl_links: Option<bool>,
-    unfurl_media: Option<bool>,
-    username: Option<String>,
+#[derive(Debug, Clone, Serialize, Default)]
+pub struct PostMessage {
+    pub channel: String,
+    pub icon_emoji: Option<String>,
+    pub icon_url: Option<String>,
+    pub link_names: Option<bool>,
+    pub markdown_text: Option<String>,
+    pub mrkdwn: Option<bool>,
+    pub parse: Option<String>,
+    pub reply_broadcast: Option<bool>,
+    pub text: Option<String>,
+    pub thread_ts: Option<String>,
+    pub unfurl_links: Option<bool>,
+    pub unfurl_media: Option<bool>,
+    pub username: Option<String>,
 }
 
-impl PostMessagePayload {
-    pub fn to_json_string(&self) -> serde_json::Result<String> {
-        serde_json::to_string(self)
-    }
-
-    pub fn into_value(self) -> serde_json::Result<Value> {
-        serde_json::to_value(self)
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct PostMessagePayloadBuilder {
-    inner: PostMessagePayload,
-    path: String,
-}
-
-impl PostMessagePayloadBuilder {
+impl PostMessage {
     pub fn new(channel: impl Into<String>) -> Self {
         Self {
-            inner: PostMessagePayload {
-                channel: channel.into(),
-                ..Default::default()
-            },
+            channel: channel.into(),
+            ..Default::default()
         }
     }
-
     pub fn text(mut self, v: impl Into<String>) -> Self {
-        self.inner.text = Some(v.into());
+        self.text = Some(v.into());
         self
     }
     pub fn icon_emoji(mut self, v: impl Into<String>) -> Self {
-        self.inner.icon_emoji = Some(v.into());
+        self.icon_emoji = Some(v.into());
         self
     }
     pub fn icon_url(mut self, v: impl Into<String>) -> Self {
-        self.inner.icon_url = Some(v.into());
+        self.icon_url = Some(v.into());
         self
     }
     pub fn link_names(mut self, v: bool) -> Self {
-        self.inner.link_names = Some(v);
+        self.link_names = Some(v);
         self
     }
     pub fn markdown_text(mut self, v: impl Into<String>) -> Self {
-        self.inner.markdown_text = Some(v.into());
+        self.markdown_text = Some(v.into());
         self
     }
     pub fn mrkdwn(mut self, v: bool) -> Self {
-        self.inner.mrkdwn = Some(v);
+        self.mrkdwn = Some(v);
         self
     }
     pub fn parse(mut self, v: impl Into<String>) -> Self {
-        self.inner.parse = Some(v.into());
+        self.parse = Some(v.into());
         self
     }
     pub fn reply_broadcast(mut self, v: bool) -> Self {
-        self.inner.reply_broadcast = Some(v);
+        self.reply_broadcast = Some(v);
         self
     }
     pub fn thread_ts(mut self, v: impl Into<String>) -> Self {
-        self.inner.thread_ts = Some(v.into());
+        self.thread_ts = Some(v.into());
         self
     }
     pub fn unfurl_links(mut self, v: bool) -> Self {
-        self.inner.unfurl_links = Some(v);
+        self.unfurl_links = Some(v);
         self
     }
     pub fn unfurl_media(mut self, v: bool) -> Self {
-        self.inner.unfurl_media = Some(v);
+        self.unfurl_media = Some(v);
         self
     }
     pub fn username(mut self, v: impl Into<String>) -> Self {
-        self.inner.username = Some(v.into());
+        self.username = Some(v.into());
         self
     }
+}
 
-    pub fn build(self) -> PostMessagePayload {
-        self.inner
+#[derive(Debug, Clone, Deserialize)]
+pub struct PostMessageResponse {
+    pub ok: bool,
+}
+
+impl SlackMethod for PostMessage {
+    const PATH: &'static str = "/chat.postMessage";
+    type Body = Self;
+    type Response = PostMessageResponse;
+    fn into_body(self) -> Self::Body {
+        self
     }
+}
 
-    pub fn build_json(self) -> serde_json::Result<String> {
-        self.build().to_json_string()
+pub struct PostMessageCall<'a, C: Execute> {
+    pub(crate) client: &'a C,
+    pub(crate) inner: PostMessage,
+}
+
+impl<'a, C: Execute> PostMessageCall<'a, C> {
+    pub fn text(mut self, v: impl Into<String>) -> Self {
+        self.inner = self.inner.text(v);
+        self
     }
+    pub fn icon_emoji(mut self, v: impl Into<String>) -> Self {
+        self.inner = self.inner.icon_emoji(v);
+        self
+    }
+    pub fn icon_url(mut self, v: impl Into<String>) -> Self {
+        self.inner = self.inner.icon_url(v);
+        self
+    }
+    pub fn link_names(mut self, v: bool) -> Self {
+        self.inner = self.inner.link_names(v);
+        self
+    }
+    pub fn markdown_text(mut self, v: impl Into<String>) -> Self {
+        self.inner = self.inner.markdown_text(v);
+        self
+    }
+    pub fn mrkdwn(mut self, v: bool) -> Self {
+        self.inner = self.inner.mrkdwn(v);
+        self
+    }
+    pub fn parse(mut self, v: impl Into<String>) -> Self {
+        self.inner = self.inner.parse(v);
+        self
+    }
+    pub fn reply_broadcast(mut self, v: bool) -> Self {
+        self.inner = self.inner.reply_broadcast(v);
+        self
+    }
+    pub fn thread_ts(mut self, v: impl Into<String>) -> Self {
+        self.inner = self.inner.thread_ts(v);
+        self
+    }
+    pub fn unfurl_links(mut self, v: bool) -> Self {
+        self.inner = self.inner.unfurl_links(v);
+        self
+    }
+    pub fn unfurl_media(mut self, v: bool) -> Self {
+        self.inner = self.inner.unfurl_media(v);
+        self
+    }
+    pub fn username(mut self, v: impl Into<String>) -> Self {
+        self.inner = self.inner.username(v);
+        self
+    }
+    pub fn send(self) -> Result<PostMessageResponse, C::Error> {
+        self.client.execute(self.inner)
+    }
+}
 
-    pub fn build_value(self) -> serde_json::Result<Value> {
-        self.build().into_value()
+impl<'a, C: Execute> Chat<'a, C> {
+    pub fn post_message(&'a self, channel: impl Into<String>) -> PostMessageCall<'a, C> {
+        PostMessageCall {
+            client: self.client,
+            inner: PostMessage::new(channel),
+        }
     }
 }
