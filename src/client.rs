@@ -1,5 +1,8 @@
 use serde::Serialize;
 use serde::de::DeserializeOwned;
+use serde_json as json;
+use std::time::Duration;
+use thiserror::Error;
 
 #[derive(Copy, Clone, Debug)]
 pub enum HttpMethod {
@@ -39,18 +42,37 @@ pub struct Client {
     token: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
-    Http(reqwest::Error),
+    #[error("http error: {0}")]
+    Http(#[from] reqwest::Error),
+    #[error("decode error: {0}")]
+    Decode(#[from] json::Error),
+    #[error("rate limited, retry after {retry_after:?} {request_id:?}")]
+    RateLimited {
+        retry_after: Duration,
+        request_id: Option<String>,
+    },
+    #[error("http status {code}: {body} {request_id:?}")]
+    Status {
+        code: reqwest::StatusCode,
+        body: String,
+        request_id: Option<String>,
+    },
+    #[error(transparent)]
+    Slack(#[from] SlackError),
+}
+
+#[derive(Debug, Error)]
+#[error("{code}")]
+pub struct SlackError {
+    pub code: String,
+    pub warnings: Option<Vec<String>>,
+    pub response_metadata: Option<json::Value>,
+    pub request_id: Option<String>,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
-
-impl From<reqwest::Error> for Error {
-    fn from(e: reqwest::Error) -> Self {
-        Error::Http(e)
-    }
-}
 
 impl Client {
     pub fn new(base_url: impl Into<String>, token: impl Into<String>) -> Self {
@@ -78,9 +100,73 @@ impl Client {
             Encoding::Json => req.json(&body).send()?,
         };
 
-        let parsed = resp.json::<M::Response>()?;
-        Ok(parsed)
+        let request_id = resp
+            .headers()
+            .get("x-slack-req-id")
+            .and_then(|v| v.to_str().ok())
+            .map(std::string::ToString::to_string);
+
+        let status = resp.status();
+        if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+            let retry_after = resp
+                .headers()
+                .get(reqwest::header::RETRY_AFTER)
+                .and_then(|h| h.to_str().ok())
+                .and_then(|s| s.parse::<u64>().ok())
+                .map_or_else(|| Duration::from_secs(1), Duration::from_secs);
+            return Err(Error::RateLimited {
+                retry_after,
+                request_id,
+            });
+        }
+
+        let text = resp.text()?;
+        if !status.is_success() {
+            return Err(Error::Status {
+                code: status,
+                body: text,
+                request_id,
+            });
+        }
+
+        match json::from_str::<SlackApiResponse<M::Response>>(&text)? {
+            SlackApiResponse::Ok { data, .. } => Ok(data),
+            SlackApiResponse::Err {
+                error,
+                warnings,
+                response_metadata,
+                ..
+            } => Err(Error::Slack(SlackError {
+                code: error,
+                warnings,
+                response_metadata,
+                request_id,
+            })),
+        }
     }
+}
+
+#[allow(dead_code)]
+#[derive(Debug, serde::Deserialize)]
+#[serde(untagged)]
+enum SlackApiResponse<T> {
+    Ok {
+        ok: bool,
+        #[serde(flatten)]
+        data: T,
+        #[serde(default)]
+        warnings: Option<Vec<String>>,
+        #[serde(default)]
+        response_metadata: Option<json::Value>,
+    },
+    Err {
+        ok: bool,
+        error: String,
+        #[serde(default)]
+        warnings: Option<Vec<String>>,
+        #[serde(default)]
+        response_metadata: Option<json::Value>,
+    },
 }
 
 impl Execute for Client {

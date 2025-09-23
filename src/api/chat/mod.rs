@@ -1,3 +1,4 @@
+pub mod post_ephemeral;
 pub mod post_message;
 
 use crate::client::Execute;

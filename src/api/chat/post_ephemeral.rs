@@ -6,8 +6,9 @@ use crate::client::{Execute, SlackMethod};
 
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Default)]
-pub struct PostMessage {
+pub struct PostEphemeral {
     pub channel: String,
+    pub user: String,
     pub icon_emoji: Option<String>,
     pub icon_url: Option<String>,
     pub link_names: Option<bool>,
@@ -22,11 +23,12 @@ pub struct PostMessage {
     pub username: Option<String>,
 }
 
-impl PostMessage {
+impl PostEphemeral {
     #[must_use]
-    pub fn new(channel: impl Into<String>) -> Self {
+    pub fn new(channel: impl Into<String>, user: impl Into<String>) -> Self {
         Self {
             channel: channel.into(),
+            user: user.into(),
             ..Default::default()
         }
     }
@@ -93,23 +95,25 @@ impl PostMessage {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct PostMessageResponse {}
+pub struct PostEphemeralResponse {
+    pub message_ts: String,
+}
 
-impl SlackMethod for PostMessage {
-    const PATH: &'static str = "/chat.postMessage";
+impl SlackMethod for PostEphemeral {
+    const PATH: &'static str = "/chat.postEphemeral";
     type Body = Self;
-    type Response = PostMessageResponse;
+    type Response = PostEphemeralResponse;
     fn into_body(self) -> Self::Body {
         self
     }
 }
 
-pub struct PostMessageCall<'a, C: Execute> {
+pub struct PostEphemeralCall<'a, C: Execute> {
     pub(crate) client: &'a C,
-    pub(crate) inner: PostMessage,
+    pub(crate) inner: PostEphemeral,
 }
 
-impl<C: Execute> PostMessageCall<'_, C> {
+impl<C: Execute> PostEphemeralCall<'_, C> {
     #[must_use]
     pub fn text(mut self, v: impl Into<String>) -> Self {
         self.inner = self.inner.text(v);
@@ -171,16 +175,20 @@ impl<C: Execute> PostMessageCall<'_, C> {
         self
     }
     #[allow(clippy::missing_errors_doc)]
-    pub fn send(self) -> Result<PostMessageResponse, C::Error> {
+    pub fn send(self) -> Result<PostEphemeralResponse, C::Error> {
         self.client.execute(self.inner)
     }
 }
 
 impl<'a, C: Execute> Chat<'a, C> {
-    pub fn post_message(&'a self, channel: impl Into<String>) -> PostMessageCall<'a, C> {
-        PostMessageCall {
+    pub fn post_ephemeral(
+        &'a self,
+        channel: impl Into<String>,
+        user: impl Into<String>,
+    ) -> PostEphemeralCall<'a, C> {
+        PostEphemeralCall {
             client: self.client,
-            inner: PostMessage::new(channel),
+            inner: PostEphemeral::new(channel, user),
         }
     }
 }
