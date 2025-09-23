@@ -1,7 +1,40 @@
-use crate::client::method::{Encoding, Execute, HttpMethod, SlackMethod};
+use serde::Serialize;
+use serde::de::DeserializeOwned;
+
+#[derive(Copy, Clone, Debug)]
+pub enum HttpMethod {
+    Get,
+    Post,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum Encoding {
+    Json,
+}
+
+pub trait SlackMethod {
+    const PATH: &'static str;
+    type Body: Serialize;
+    type Response: DeserializeOwned;
+    fn into_body(self) -> Self::Body;
+    #[must_use]
+    fn method() -> HttpMethod {
+        HttpMethod::Post
+    }
+    #[must_use]
+    fn encoding() -> Encoding {
+        Encoding::Json
+    }
+}
+
+pub trait Execute {
+    type Error;
+    #[allow(clippy::missing_errors_doc)]
+    fn execute<M: SlackMethod>(&self, method: M) -> std::result::Result<M::Response, Self::Error>;
+}
 
 pub struct Client {
-    client: reqwest::blocking::Client,
+    http: reqwest::blocking::Client,
     base_url: String,
     token: String,
 }
@@ -22,7 +55,7 @@ impl From<reqwest::Error> for Error {
 impl Client {
     pub fn new(base_url: impl Into<String>, token: impl Into<String>) -> Self {
         Self {
-            client: reqwest::blocking::Client::new(),
+            http: reqwest::blocking::Client::new(),
             base_url: base_url.into(),
             token: token.into(),
         }
@@ -32,12 +65,12 @@ impl Client {
         format!("{}{}", self.base_url, path)
     }
 
-    fn _execute_internal<M: SlackMethod>(&self, method: M) -> Result<M::Response> {
+    fn execute_internal<M: SlackMethod>(&self, method: M) -> Result<M::Response> {
         let body = method.into_body();
         let url = self.url(M::PATH);
         let req = match M::method() {
-            HttpMethod::Post => self.client.post(url),
-            HttpMethod::Get => self.client.get(url),
+            HttpMethod::Post => self.http.post(url),
+            HttpMethod::Get => self.http.get(url),
         }
         .bearer_auth(&self.token);
 
@@ -52,8 +85,7 @@ impl Client {
 
 impl Execute for Client {
     type Error = Error;
-
     fn execute<M: SlackMethod>(&self, method: M) -> Result<M::Response> {
-        self._execute_internal(method)
+        self.execute_internal(method)
     }
 }

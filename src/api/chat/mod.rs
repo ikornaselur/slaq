@@ -1,6 +1,6 @@
 pub mod post_message;
 
-use crate::client::method::Execute;
+use crate::client::Execute;
 
 pub struct Chat<'a, C: Execute> {
     pub(crate) client: &'a C,
