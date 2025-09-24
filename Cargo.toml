@@ -13,6 +13,7 @@ reqwest = { version = "0.12.23", default-features = false, features = [
 ] }
 serde_with = "3.14.1"
 thiserror = "2.0.16"
+slaq_macros = { path = "slaq-macros" }
 
 
 [features]

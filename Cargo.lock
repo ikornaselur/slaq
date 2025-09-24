@@ -1106,7 +1106,17 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
+ "slaq_macros",
  "thiserror",
+]
+
+[[package]]
+name = "slaq_macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
