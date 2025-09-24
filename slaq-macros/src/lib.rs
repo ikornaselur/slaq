@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse::Parser;
-use syn::{ItemStruct, Lit, Meta, MetaNameValue, Type, parse_macro_input};
+use syn::{Attribute, ItemStruct, Lit, Meta, MetaNameValue, Type, parse_macro_input};
 
 #[proc_macro_attribute]
 pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
@@ -58,14 +58,28 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
     let response_ty = response_ty.expect("slack_api requires response=Type");
 
     let struct_ident = item.ident.clone();
+    let struct_docs: Vec<Attribute> = item
+        .attrs
+        .iter()
+        .filter(|a| a.path().is_ident("doc"))
+        .cloned()
+        .collect();
 
     // Determine required vs optional fields
     let mut required_fields: Vec<(&syn::Ident, &Type)> = Vec::new();
-    let mut optional_fields: Vec<(&syn::Ident, &Type)> = Vec::new();
+    let mut optional_fields: Vec<(&syn::Ident, &Type, Vec<Attribute>)> = Vec::new();
     for field in &item.fields {
         let ident = field.ident.as_ref().expect("named fields only");
         match is_option(&field.ty) {
-            Some(inner) => optional_fields.push((ident, inner)),
+            Some(inner) => {
+                let docs: Vec<Attribute> = field
+                    .attrs
+                    .iter()
+                    .filter(|a| a.path().is_ident("doc"))
+                    .cloned()
+                    .collect();
+                optional_fields.push((ident, inner, docs));
+            }
             None => required_fields.push((ident, &field.ty)),
         }
     }
@@ -79,15 +93,16 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
     let req_inits = required_fields.iter().map(|(id, _)| {
         quote! { #id: #id.into() }
     });
-    let opt_inits = optional_fields.iter().map(|(id, _)| {
+    let opt_inits = optional_fields.iter().map(|(id, _, _)| {
         quote! { #id: ::core::option::Option::None }
     });
 
     let req_names = required_fields.iter().map(|(id, _)| quote! { #id });
 
-    let opt_setters_req = optional_fields.iter().map(|(id, ty)| {
+    let opt_setters_req = optional_fields.iter().map(|(id, ty, docs)| {
         if is_bool(ty) {
             quote! {
+                #( #docs )*
                 #[must_use]
                 pub fn #id(mut self, v: bool) -> Self {
                     self.#id = ::core::option::Option::Some(v);
@@ -96,6 +111,7 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
             }
         } else {
             quote! {
+                #( #docs )*
                 #[must_use]
                 pub fn #id(mut self, v: impl ::core::convert::Into<#ty>) -> Self {
                     self.#id = ::core::option::Option::Some(v.into());
@@ -106,9 +122,10 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
     });
 
     // MethodCall impl
-    let call_setters = optional_fields.iter().map(|(id, ty)| {
+    let call_setters = optional_fields.iter().map(|(id, ty, docs)| {
         if is_bool(ty) {
             quote! {
+                #( #docs )*
                 #[must_use]
                 pub fn #id(mut self, v: bool) -> Self {
                     self.inner = self.inner.#id(v);
@@ -117,6 +134,7 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
             }
         } else {
             quote! {
+                #( #docs )*
                 #[must_use]
                 pub fn #id(mut self, v: impl ::core::convert::Into<#ty>) -> Self {
                     self.inner = self.inner.#id(v);
@@ -133,6 +151,7 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
     };
 
     let input_ts: proc_macro2::TokenStream = input_clone.into();
+    let chat_path_doc = format!("Slack API path: {}", path_lit);
     let expanded = quote! {
         #input_ts
 
@@ -156,6 +175,8 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
         }
 
         impl<'a, C: crate::client::Execute> super::Chat<'a, C> {
+            #( #struct_docs )*
+            #[doc = #chat_path_doc]
             pub fn #chat_method(&'a self, #( #req_args_chat ),*) -> crate::api::call::MethodCall<'a, C, #struct_ident> {
                 crate::api::call::MethodCall { client: self.client, inner: #struct_ident::new( #( #req_names ),* ) }
             }
