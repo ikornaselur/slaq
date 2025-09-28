@@ -145,7 +145,10 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
     });
 
     let call_alias_tokens = if let Some(alias) = call_alias {
-        quote! { pub type #alias<'a, C> = crate::api::call::MethodCall<'a, C, #struct_ident>; }
+        quote! {
+            #[doc = concat!("Type alias for `MethodCall` over `", stringify!(#struct_ident), "`.")]
+            pub type #alias<'a, C> = crate::api::call::MethodCall<'a, C, #struct_ident>;
+        }
     } else {
         quote! {}
     };

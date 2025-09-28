@@ -16,7 +16,7 @@ use serde_with::skip_serializing_none;
 pub struct PostMessage {
     /// An encoded ID or channel name that represents a channel, private group, or IM channel to send the message to. See below[0] for more details.
     ///
-    /// [0] https://docs.slack.dev/reference/methods/chat.postmessage#channels
+    /// [0] <https://docs.slack.dev/reference/methods/chat.postmessage#channels>
     pub channel: String,
     /*
     /// A JSON-based array of structured attachments, presented as a URL-encoded string.
@@ -36,7 +36,7 @@ pub struct PostMessage {
     pub icon_url: Option<String>,
     /// Find and link user groups. No longer supports linking individual users; use syntax shown in Mentioning Users[0] instead.
     ///
-    /// [0]: https://docs.slack.dev/messaging/formatting-message-text/#mentioning-users
+    /// [0]: <https://docs.slack.dev/messaging/formatting-message-text/#mentioning-users>
     pub link_names: Option<bool>,
     /// Accepts message text formatted in markdown. This argument should not be used in conjunction with `blocks` or `text`. Limit this field to 12,000 characters.
     pub markdown_text: Option<String>,
@@ -50,13 +50,13 @@ pub struct PostMessage {
     pub mrkdwn: Option<bool>,
     /// Change how messages are treated. See below[0].
     ///
-    /// [0]: https://docs.slack.dev/reference/methods/chat.postmessage#formatting
+    /// [0]: <https://docs.slack.dev/reference/methods/chat.postmessage#formatting>
     pub parse: Option<String>,
     /// Used in conjunction with `thread_ts` and indicates whether reply should be made visible to everyone in the channel or conversation. Defaults to `false`.
     pub reply_broadcast: Option<bool>,
     /// How this field works and whether it is required depends on other fields you use in your API call. See below[0] for more detail.
     ///
-    /// [0]: https://docs.slack.dev/reference/methods/chat.postmessage#text_usage
+    /// [0]: <https://docs.slack.dev/reference/methods/chat.postmessage#text_usage>
     pub text: Option<String>,
     /// Provide another message's `ts` value to make this message a reply. Avoid using a reply's `ts` value; use its parent instead.
     pub thread_ts: Option<String>,
@@ -69,4 +69,5 @@ pub struct PostMessage {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+/// Response for `chat.postMessage`.
 pub struct PostMessageResponse {}

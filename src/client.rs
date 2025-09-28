@@ -1,47 +1,129 @@
-use serde::Serialize;
 use serde::de::DeserializeOwned;
+use serde::Serialize;
 use serde_json as json;
-use std::time::Duration;
 use thiserror::Error;
 
+#[cfg(feature = "transport-reqwest")]
+use std::time::Duration;
+
 #[derive(Copy, Clone, Debug)]
+/// HTTP methods supported by the Slack Web API wrapper.
 pub enum HttpMethod {
     Get,
     Post,
 }
 
 #[derive(Copy, Clone, Debug)]
+/// Wire encoding used when sending bodies.
 pub enum Encoding {
     Json,
 }
 
+/// A Slack API method definition implemented by generated request types.
 pub trait SlackMethod {
+    /// The Slack API path (e.g., "/chat.postMessage").
     const PATH: &'static str;
+    /// The serializable request body type.
     type Body: Serialize;
+    /// The deserializable response body type.
     type Response: DeserializeOwned;
+    /// Converts the method into its serializable body.
     fn into_body(self) -> Self::Body;
+    /// The HTTP method to use when sending this request.
     #[must_use]
     fn method() -> HttpMethod {
         HttpMethod::Post
     }
+    /// The wire encoding to use when sending this request.
     #[must_use]
     fn encoding() -> Encoding {
         Encoding::Json
     }
 }
 
+/// A transport that can execute Slack API methods.
 pub trait Execute {
     type Error;
-    #[allow(clippy::missing_errors_doc)]
+    /// Executes the provided Slack API method and returns the decoded response.
+    ///
+    /// # Errors
+    /// Returns a transport-specific error if the request fails to send, decode, or if Slack reports an error.
     fn execute<M: SlackMethod>(&self, method: M) -> std::result::Result<M::Response, Self::Error>;
 }
 
+/// A built, transport-agnostic Slack API request.
+#[must_use]
+pub struct SlackRequest<M: SlackMethod> {
+    pub path: &'static str,
+    pub method: HttpMethod,
+    pub encoding: Encoding,
+    pub body: M::Body,
+}
+
+impl<M: SlackMethod> SlackRequest<M> {
+    /// Returns the HTTP Content-Type for this request's encoding.
+    #[must_use]
+    pub fn content_type(&self) -> &'static str {
+        match self.encoding {
+            Encoding::Json => "application/json",
+        }
+    }
+    /// Serializes the request body to a JSON string.
+    ///
+    /// # Errors
+    /// Returns a serialization error if the body cannot be encoded as JSON.
+    pub fn to_json(&self) -> json::Result<String> {
+        match self.encoding {
+            Encoding::Json => json::to_string(&self.body),
+        }
+    }
+}
+
+impl<M: SlackMethod> From<M> for SlackRequest<M> {
+    fn from(method: M) -> Self {
+        SlackRequest {
+            path: M::PATH,
+            method: M::method(),
+            encoding: M::encoding(),
+            body: method.into_body(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn slack_request_json_and_content_type() {
+        #[derive(serde::Serialize)]
+        struct Body { a: u8 }
+
+        struct M;
+        impl SlackMethod for M {
+            const PATH: &'static str = "/x";
+            type Body = Body;
+            type Response = ();
+            fn into_body(self) -> Self::Body { Body { a: 1 } }
+        }
+
+        let req: SlackRequest<M> = M.into();
+        assert_eq!(req.content_type(), "application/json");
+        let json = req.to_json().expect("json");
+        assert_eq!(json, "{\"a\":1}");
+    }
+}
+
+#[cfg(feature = "transport-reqwest")]
+/// Blocking Slack Web API client using reqwest as the transport.
 pub struct Client {
     http: reqwest::blocking::Client,
     base_url: String,
     token: String,
 }
 
+#[cfg(feature = "transport-reqwest")]
+/// Errors returned by the reqwest-based client.
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("http error: {0}")]
@@ -65,6 +147,7 @@ pub enum Error {
 
 #[derive(Debug, Error)]
 #[error("{code}")]
+/// Error returned by Slack when `ok: false`.
 pub struct SlackError {
     pub code: String,
     pub warnings: Option<Vec<String>>,
@@ -72,9 +155,14 @@ pub struct SlackError {
     pub request_id: Option<String>,
 }
 
+#[cfg(feature = "transport-reqwest")]
+/// Convenience result alias for the reqwest-based client.
 pub type Result<T> = std::result::Result<T, Error>;
 
+#[cfg(feature = "transport-reqwest")]
 impl Client {
+    /// Creates a new blocking client using the given base Slack API URL and bearer token.
+    #[must_use]
     pub fn new(base_url: impl Into<String>, token: impl Into<String>) -> Self {
         Self {
             http: reqwest::blocking::Client::new(),
@@ -88,16 +176,33 @@ impl Client {
     }
 
     fn execute_internal<M: SlackMethod>(&self, method: M) -> Result<M::Response> {
-        let body = method.into_body();
-        let url = self.url(M::PATH);
-        let req = match M::method() {
+        let req = SlackRequest::<M> {
+            path: M::PATH,
+            method: M::method(),
+            encoding: M::encoding(),
+            body: method.into_body(),
+        };
+        self.send(&req)
+    }
+
+    /// Sends a previously built `SlackRequest` using this client.
+    ///
+    /// # Errors
+    /// - `Error::Http` if the underlying HTTP request fails.
+    /// - `Error::RateLimited` if Slack responds with 429 and a Retry-After header.
+    /// - `Error::Status` for non-success HTTP statuses.
+    /// - `Error::Decode` if response JSON cannot be decoded.
+    /// - `Error::Slack` if Slack returns `ok: false` with an error code.
+    pub fn send<M: SlackMethod>(&self, request: &SlackRequest<M>) -> Result<M::Response> {
+        let url = self.url(request.path);
+        let req = match request.method {
             HttpMethod::Post => self.http.post(url),
             HttpMethod::Get => self.http.get(url),
         }
         .bearer_auth(&self.token);
 
-        let resp = match M::encoding() {
-            Encoding::Json => req.json(&body).send()?,
+        let resp = match request.encoding {
+            Encoding::Json => req.json(&request.body).send()?,
         };
 
         let request_id = resp
@@ -146,6 +251,7 @@ impl Client {
     }
 }
 
+#[cfg(feature = "transport-reqwest")]
 #[allow(dead_code)]
 #[derive(Debug, serde::Deserialize)]
 #[serde(untagged)]
@@ -169,6 +275,7 @@ enum SlackApiResponse<T> {
     },
 }
 
+#[cfg(feature = "transport-reqwest")]
 impl Execute for Client {
     type Error = Error;
     fn execute<M: SlackMethod>(&self, method: M) -> Result<M::Response> {

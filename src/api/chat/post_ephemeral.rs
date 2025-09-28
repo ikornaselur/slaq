@@ -9,6 +9,7 @@ use serde_with::skip_serializing_none;
     response=PostEphemeralResponse,
     call_alias="PostEphemeralCall"
 )]
+/// Sends an ephemeral message to a user in a channel.
 pub struct PostEphemeral {
     pub channel: String,
     pub user: String,
@@ -27,6 +28,7 @@ pub struct PostEphemeral {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+/// Response for `chat.postEphemeral`.
 pub struct PostEphemeralResponse {
     pub message_ts: String,
 }
