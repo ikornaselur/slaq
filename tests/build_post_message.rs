@@ -1,8 +1,8 @@
 #![allow(clippy::missing_errors_doc, clippy::must_use_candidate)]
 
 use slaq::api::chat::post_message::PostMessage;
-use slaq::client::{Encoding, HttpMethod, SlackRequest};
 use slaq::blocks;
+use slaq::client::{Encoding, HttpMethod, SlackRequest};
 
 #[test]
 fn build_post_message_minimal() {
@@ -30,8 +30,8 @@ fn build_post_message_with_options() {
         .username("bot")
         .mrkdwn(true)
         .blocks(vec![
-            blocks::divider().build(),
-            blocks::markdown("notes").block_id("b2").build(),
+            blocks::Divider::new().build(),
+            blocks::Markdown::new("notes").block_id("b2").build(),
         ]);
     let req = payload.build_request();
 

@@ -7,98 +7,30 @@
 //! These are intentionally simplified and not a full Block Kit implementation.
 
 use serde::Serialize;
-use serde_with::skip_serializing_none;
+use serde_json as json;
 
 /// A minimal set of supported blocks.
 #[derive(Debug, Clone, Serialize)]
-#[serde(untagged)]
-pub enum Block {
-    Divider(Divider),
-    Markdown(Markdown),
-}
+#[serde(transparent)]
+pub struct Block(pub json::Value);
 
-#[skip_serializing_none]
-#[derive(Debug, Clone, Serialize)]
-/// A horizontal divider block.
-pub struct Divider {
-    #[serde(rename = "type")]
-    type_: &'static str,
-    pub block_id: Option<String>,
-}
-
-impl Divider {
-    #[must_use]
-    pub fn builder() -> DividerBuilder {
-        DividerBuilder { block_id: None }
-    }
-}
-
-/// Builder for `Divider` blocks.
-#[derive(Debug, Clone, Default)]
-pub struct DividerBuilder {
-    block_id: Option<String>,
-}
-
-impl DividerBuilder {
-    #[must_use]
-    pub fn block_id(mut self, v: impl Into<String>) -> Self {
-        self.block_id = Some(v.into());
-        self
-    }
-
-    #[must_use]
-    pub fn build(self) -> Block {
-        Block::Divider(Divider { type_: "divider", block_id: self.block_id })
-    }
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Clone, Serialize)]
-/// A simple markdown block with plain text.
-pub struct Markdown {
-    #[serde(rename = "type")]
-    type_: &'static str,
-    pub text: String,
-    pub block_id: Option<String>,
-}
-
-impl Markdown {
-    #[must_use]
-    pub fn builder(text: impl Into<String>) -> MarkdownBuilder {
-        MarkdownBuilder { text: text.into(), block_id: None }
-    }
-}
-
-/// Builder for `Markdown` blocks.
+#[slaq_macros::block(kind = "divider")]
 #[derive(Debug, Clone)]
-pub struct MarkdownBuilder {
-    text: String,
-    block_id: Option<String>,
+/// Visually separates pieces of info inside of a message.
+pub struct Divider {
+    /// A unique identifier for a block. If not specified, one will be generated.
+    /// Maximum length for this field is 255 characters. `block_id`` should be unique
+    /// for each message and each iteration of a message. If a message is updated,
+    /// use a new `block_id`.
+    pub block_id: Option<String>,
 }
 
-impl MarkdownBuilder {
-    #[must_use]
-    pub fn block_id(mut self, v: impl Into<String>) -> Self {
-        self.block_id = Some(v.into());
-        self
-    }
-
-    #[must_use]
-    pub fn build(self) -> Block {
-        Block::Markdown(Markdown { type_: "markdown", text: self.text, block_id: self.block_id })
-    }
-}
-
-/// Convenience constructor for a divider block builder.
-#[must_use]
-pub fn divider() -> DividerBuilder {
-    Divider::builder()
-}
-
-/// Convenience constructor for a markdown block builder.
-#[must_use]
-pub fn markdown(text: impl Into<String>) -> MarkdownBuilder {
-    Markdown::builder(text)
+#[slaq_macros::block(kind = "markdown")]
+#[derive(Debug, Clone)]
+/// Displays formatted markdown.
+pub struct Markdown {
+    /// The standard markdown-formatted text. Limit 12,000 characters max.
+    pub text: String,
 }
 
 #[cfg(test)]
@@ -107,17 +39,16 @@ mod tests {
 
     #[test]
     fn divider_serializes_minimal() {
-        let block = divider().build();
+        let block = Divider::new().build();
         let json = serde_json::to_string(&block).unwrap();
         assert_eq!(json, r#"{"type":"divider"}"#);
     }
 
     #[test]
     fn markdown_serializes_with_text_and_block_id() {
-        let block = markdown("hello").block_id("b1").build();
+        let block = Markdown::new("hello").build();
         let json = serde_json::to_string(&block).unwrap();
         assert!(json.contains("\"type\":\"markdown\""));
         assert!(json.contains("\"text\":\"hello\""));
-        assert!(json.contains("\"block_id\":\"b1\""));
     }
 }

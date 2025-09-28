@@ -12,8 +12,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new(DEFAULT_BASE_URL, token);
 
     let payload = PostMessage::new(channel).text("Hello, world").blocks(vec![
-        blocks::markdown("Hello from slaq examples").build(),
-        blocks::divider().build(),
+        blocks::Markdown::new("Hello from slaq examples").build(),
+        blocks::Divider::new().build(),
     ]);
 
     let resp = client.execute(payload)?;

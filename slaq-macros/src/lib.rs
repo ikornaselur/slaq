@@ -96,6 +96,7 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
     let opt_inits = optional_fields.iter().map(|(id, _, _)| {
         quote! { #id: ::core::option::Option::None }
     });
+    let field_inits: Vec<proc_macro2::TokenStream> = req_inits.chain(opt_inits).collect();
 
     let _req_names = required_fields.iter().map(|(id, _)| quote! { #id });
 
@@ -125,14 +126,14 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
     let _ = call_alias; // currently unused
 
     let input_ts: proc_macro2::TokenStream = input_clone.into();
-    let chat_path_doc = format!("Slack API path: {}", path_lit);
+    let chat_path_doc = format!("Slack API path: {path_lit}");
     let expanded = quote! {
         #input_ts
 
         impl #struct_ident {
             #[must_use]
             pub fn new( #( #req_args_new ),* ) -> Self {
-                Self { #( #req_inits ),*, #( #opt_inits ),* }
+                Self { #( #field_inits ),* }
             }
             #( #opt_setters_req )*
             /// Builds a transport-agnostic Slack request containing this payload.
@@ -173,4 +174,144 @@ fn is_bool(ty: &Type) -> bool {
         return seg.ident == "bool" && seg.arguments.is_empty();
     }
     false
+}
+
+#[proc_macro_attribute]
+pub fn block(args: TokenStream, input: TokenStream) -> TokenStream {
+    // Parse attribute args like: kind = "divider"
+    let metas = syn::punctuated::Punctuated::<Meta, syn::Token![,]>::parse_terminated
+        .parse(args)
+        .expect("failed to parse attribute arguments");
+
+    let mut kind_lit: Option<String> = None;
+    for meta in metas {
+        if let Meta::NameValue(MetaNameValue { path, value, .. }) = meta
+            && let Some(ident) = path.get_ident().cloned()
+        {
+            let key = ident.to_string();
+            if let (
+                "kind",
+                syn::Expr::Lit(syn::ExprLit {
+                    lit: Lit::Str(s), ..
+                }),
+            ) = (key.as_str(), value)
+            {
+                kind_lit = Some(s.value());
+            }
+        }
+    }
+
+    let kind_lit = kind_lit.expect("block requires kind=\"...\"");
+
+    let input_clone = input.clone();
+    let item = parse_macro_input!(input as ItemStruct);
+    let struct_ident = item.ident.clone();
+
+    // Determine required vs optional fields
+    let mut required_fields: Vec<(&syn::Ident, &Type)> = Vec::new();
+    let mut optional_fields: Vec<(&syn::Ident, &Type, Vec<Attribute>)> = Vec::new();
+    for field in &item.fields {
+        let ident = field.ident.as_ref().expect("named fields only");
+        match is_option(&field.ty) {
+            Some(inner) => {
+                let docs: Vec<Attribute> = field
+                    .attrs
+                    .iter()
+                    .filter(|a| a.path().is_ident("doc"))
+                    .cloned()
+                    .collect();
+                optional_fields.push((ident, inner, docs));
+            }
+            None => required_fields.push((ident, &field.ty)),
+        }
+    }
+
+    // new(required...)
+    let req_args_new = required_fields.iter().map(|(id, ty)| {
+        quote! { #id: impl ::core::convert::Into<#ty> }
+    });
+    let req_inits = required_fields.iter().map(|(id, _)| {
+        quote! { #id: #id.into() }
+    });
+    let opt_inits = optional_fields.iter().map(|(id, _, _)| {
+        quote! { #id: ::core::option::Option::None }
+    });
+    let field_inits: Vec<proc_macro2::TokenStream> = req_inits.chain(opt_inits).collect();
+
+    // optional setters
+    let opt_setters = optional_fields.iter().map(|(id, ty, docs)| {
+        if is_bool(ty) {
+            quote! {
+                #( #docs )*
+                #[must_use]
+                pub fn #id(mut self, v: bool) -> Self {
+                    self.#id = ::core::option::Option::Some(v);
+                    self
+                }
+            }
+        } else {
+            quote! {
+                #( #docs )*
+                #[must_use]
+                pub fn #id(mut self, v: impl ::core::convert::Into<#ty>) -> Self {
+                    self.#id = ::core::option::Option::Some(v.into());
+                    self
+                }
+            }
+        }
+    });
+
+    // build() -> crate::blocks::Block
+    let mut build_inserts_req: Vec<proc_macro2::TokenStream> = Vec::new();
+    for (id, _) in &required_fields {
+        let key = id.to_string();
+        build_inserts_req.push(quote! {
+            map.insert(
+                ::std::string::String::from(#key),
+                ::serde_json::to_value(self.#id).expect("serialize required field"),
+            );
+        });
+    }
+    let mut build_inserts_opt: Vec<proc_macro2::TokenStream> = Vec::new();
+    for (id, _, _) in &optional_fields {
+        let key = id.to_string();
+        build_inserts_opt.push(quote! {
+            if let ::core::option::Option::Some(v) = self.#id {
+                map.insert(
+                    ::std::string::String::from(#key),
+                    ::serde_json::to_value(v).expect("serialize optional field"),
+                );
+            }
+        });
+    }
+
+    let _input_ts: proc_macro2::TokenStream = input_clone.into();
+    let kind_str = kind_lit.clone();
+    let expanded = {
+        let item_struct = item.clone();
+        quote! {
+            #item_struct
+
+            impl #struct_ident {
+                #[must_use]
+                pub fn new( #( #req_args_new ),* ) -> Self {
+                    Self { #( #field_inits ),* }
+                }
+                #( #opt_setters )*
+                #[must_use]
+                pub fn build(self) -> crate::blocks::Block {
+                    let mut map = ::serde_json::Map::new();
+                    map.insert(
+                        ::std::string::String::from("type"),
+                        ::serde_json::Value::String(::std::string::String::from(#kind_str)),
+                    );
+                    #( #build_inserts_req )*
+                    #( #build_inserts_opt )*
+                    crate::blocks::Block(::serde_json::Value::Object(map))
+                }
+            }
+        }
+    };
+
+    expanded.into()
 }

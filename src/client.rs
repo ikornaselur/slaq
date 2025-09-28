@@ -1,5 +1,5 @@
-use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use serde_json as json;
 use thiserror::Error;
 
@@ -97,14 +97,18 @@ mod tests {
     #[test]
     fn slack_request_json_and_content_type() {
         #[derive(serde::Serialize)]
-        struct Body { a: u8 }
+        struct Body {
+            a: u8,
+        }
 
         struct M;
         impl SlackMethod for M {
             const PATH: &'static str = "/x";
             type Body = Body;
             type Response = ();
-            fn into_body(self) -> Self::Body { Body { a: 1 } }
+            fn into_body(self) -> Self::Body {
+                Body { a: 1 }
+            }
         }
 
         let req: SlackRequest<M> = M.into();
