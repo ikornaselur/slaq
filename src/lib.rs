@@ -3,7 +3,7 @@
 //! By default includes a blocking reqwest-based client.
 //! Disable default features for a build-only crate.
 pub mod api;
-mod blocks;
+pub mod blocks;
 
 /// Default Slack Web API base URL.
 pub const DEFAULT_BASE_URL: &str = "https://slack.com/api";

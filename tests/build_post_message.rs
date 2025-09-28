@@ -2,6 +2,7 @@
 
 use slaq::api::chat::post_message::PostMessage;
 use slaq::client::{Encoding, HttpMethod, SlackRequest};
+use slaq::blocks;
 
 #[test]
 fn build_post_message_minimal() {
@@ -27,7 +28,11 @@ fn build_post_message_with_options() {
     let payload = PostMessage::new(channel)
         .text("hello")
         .username("bot")
-        .mrkdwn(true);
+        .mrkdwn(true)
+        .blocks(vec![
+            blocks::divider().build(),
+            blocks::markdown("notes").block_id("b2").build(),
+        ]);
     let req = payload.build_request();
 
     let json = req.to_json().expect("json");

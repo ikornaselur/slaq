@@ -72,6 +72,38 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+Blocks
+------
+
+This crate includes a minimal BlockKit-like builder with two blocks: divider and markdown.
+
+```rust
+use slaq::blocks;
+use slaq::api::chat::post_message::PostMessage;
+
+let blocks = vec![
+    blocks::markdown("Hello").block_id("b1").build(),
+    blocks::divider().build(),
+];
+
+let payload = PostMessage::new(channel)
+    .text("Hello with blocks")
+    .blocks(blocks);
+```
+
+Examples
+--------
+
+There is a basic example that sends a message:
+
+```
+cargo run --example hello
+```
+
+It expects the following environment variables:
+- `SLACK_BOT_TOKEN`: your app’s bot token
+- `SLACK_CHANNEL`: the channel ID to post to (e.g. `C01234567`)
+
 Build-only usage (no reqwest; you send it):
 
 ```rust

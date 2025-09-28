@@ -24,12 +24,10 @@ pub struct PostMessage {
     /// Note: Should be provided as a Vec<Attachment>
     // pub attachments: Option<Vec<Attachment>>
      */
-    /*
-    /// A JSON-based array of structured blocks, presented as a URL-encoded string.
+    /// A JSON-based array of structured blocks.
     ///
-    /// Note: Should be provided as Vec<Block>
-    // pub blocks: Option<Vec<Block>>
-     */
+    /// Note: Uses a simplified internal `Block` representation.
+    pub blocks: Option<Vec<crate::blocks::Block>>,
     /// Emoji to use as the icon for this message. Overrides `icon_url`.
     pub icon_emoji: Option<String>,
     /// URL to an image to use as the icon for this message.
