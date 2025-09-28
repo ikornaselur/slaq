@@ -1,9 +1,9 @@
 Slaq: A Slack API Client
 ====
 
-Typed Slack Web API builder with an optional reqwest transport. Use it to build
-request payloads in Rust, and either send them with the provided blocking client
-or with any HTTP client you prefer.
+Typed Slack Web API payload builders with an optional reqwest transport. Build
+request payloads in Rust, then send them with the provided blocking client or
+with any HTTP client you prefer.
 
 Features
 --------
@@ -36,7 +36,7 @@ With the built-in client (default feature):
 
 ```rust
 use slaq::{Client, DEFAULT_BASE_URL};
-use slaq::prelude::*;
+use slaq::api::chat::post_message::PostMessage;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = std::env::var("SLACK_BOT_TOKEN")?;
@@ -44,11 +44,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let client = Client::new(DEFAULT_BASE_URL, token);
 
-    let _resp = client
-        .chat()
-        .post_message(channel)
-        .text("hello from slaq")
-        .send()?;
+    // Build payload then execute it
+    let payload = PostMessage::new(channel).text("hello from slaq");
+    let _resp = client.execute(payload)?;
 
     Ok(())
 }
@@ -58,7 +56,7 @@ Build, then send with the same client (explicit request):
 
 ```rust
 use slaq::{Client, DEFAULT_BASE_URL};
-use slaq::prelude::ChatExt;
+use slaq::api::chat::post_message::PostMessage;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = std::env::var("SLACK_BOT_TOKEN")?;
@@ -66,11 +64,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let client = Client::new(DEFAULT_BASE_URL, token);
 
-    let req = client
-        .chat()
-        .post_message(channel)
-        .text("hello (built)")
-        .build();
+    let req = PostMessage::new(channel).text("hello (built)").build_request();
 
     // Send previously built request
     let _resp = client.send(&req)?;

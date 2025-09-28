@@ -54,11 +54,11 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
     }
 
     let path_lit = path_lit.expect("slack_api requires path=\"...\"");
-    let chat_method = chat_method.expect("slack_api requires chat_method=... ident");
+    let _chat_method = chat_method.expect("slack_api requires chat_method=... ident");
     let response_ty = response_ty.expect("slack_api requires response=Type");
 
     let struct_ident = item.ident.clone();
-    let struct_docs: Vec<Attribute> = item
+    let _struct_docs: Vec<Attribute> = item
         .attrs
         .iter()
         .filter(|a| a.path().is_ident("doc"))
@@ -87,7 +87,7 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
     let req_args_new = required_fields.iter().map(|(id, ty)| {
         quote! { #id: impl ::core::convert::Into<#ty> }
     });
-    let req_args_chat = required_fields.iter().map(|(id, ty)| {
+    let _req_args_chat = required_fields.iter().map(|(id, ty)| {
         quote! { #id: impl ::core::convert::Into<#ty> }
     });
     let req_inits = required_fields.iter().map(|(id, _)| {
@@ -97,7 +97,7 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
         quote! { #id: ::core::option::Option::None }
     });
 
-    let req_names = required_fields.iter().map(|(id, _)| quote! { #id });
+    let _req_names = required_fields.iter().map(|(id, _)| quote! { #id });
 
     let opt_setters_req = optional_fields.iter().map(|(id, ty, docs)| {
         if is_bool(ty) {
@@ -122,36 +122,7 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
     });
 
     // MethodCall impl
-    let call_setters = optional_fields.iter().map(|(id, ty, docs)| {
-        if is_bool(ty) {
-            quote! {
-                #( #docs )*
-                #[must_use]
-                pub fn #id(mut self, v: bool) -> Self {
-                    self.inner = self.inner.#id(v);
-                    self
-                }
-            }
-        } else {
-            quote! {
-                #( #docs )*
-                #[must_use]
-                pub fn #id(mut self, v: impl ::core::convert::Into<#ty>) -> Self {
-                    self.inner = self.inner.#id(v);
-                    self
-                }
-            }
-        }
-    });
-
-    let call_alias_tokens = if let Some(alias) = call_alias {
-        quote! {
-            #[doc = concat!("Type alias for `MethodCall` over `", stringify!(#struct_ident), "`.")]
-            pub type #alias<'a, C> = crate::api::call::MethodCall<'a, C, #struct_ident>;
-        }
-    } else {
-        quote! {}
-    };
+    let _ = call_alias; // currently unused
 
     let input_ts: proc_macro2::TokenStream = input_clone.into();
     let chat_path_doc = format!("Slack API path: {}", path_lit);
@@ -164,6 +135,12 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
                 Self { #( #req_inits ),*, #( #opt_inits ),* }
             }
             #( #opt_setters_req )*
+            /// Builds a transport-agnostic Slack request containing this payload.
+            #[must_use]
+            #[doc = #chat_path_doc]
+            pub fn build_request(self) -> crate::client::SlackRequest<Self> {
+                crate::client::SlackRequest::from(self)
+            }
         }
 
         impl crate::client::SlackMethod for #struct_ident {
@@ -172,20 +149,6 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
             type Response = #response_ty;
             fn into_body(self) -> Self::Body { self }
         }
-
-        impl<'a, C: crate::client::Execute> crate::api::call::MethodCall<'a, C, #struct_ident> {
-            #( #call_setters )*
-        }
-
-        impl<'a, C: crate::client::Execute> super::Chat<'a, C> {
-            #( #struct_docs )*
-            #[doc = #chat_path_doc]
-            pub fn #chat_method(&'a self, #( #req_args_chat ),*) -> crate::api::call::MethodCall<'a, C, #struct_ident> {
-                crate::api::call::MethodCall { client: self.client, inner: #struct_ident::new( #( #req_names ),* ) }
-            }
-        }
-
-        #call_alias_tokens
     };
 
     expanded.into()

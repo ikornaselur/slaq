@@ -25,3 +25,6 @@ optional = true
 name = "slaq"
 path = "src/main.rs"
 required-features = ["transport-reqwest"]
+
+[dev-dependencies]
+slaq_macros = { path = "slaq-macros" }

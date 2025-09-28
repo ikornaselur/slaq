@@ -1,26 +1,13 @@
 #![allow(clippy::missing_errors_doc, clippy::must_use_candidate)]
 
 use slaq::api::chat::post_message::PostMessage;
-use slaq::api::chat::ChatExt;
-use slaq::client::{Encoding, HttpMethod, SlackMethod, SlackRequest};
-
-struct NoopClient;
-
-impl slaq::client::Execute for NoopClient {
-    type Error = ();
-    fn execute<M: SlackMethod>(&self, _method: M) -> Result<M::Response, Self::Error> {
-        unreachable!("send should not be called in build tests")
-    }
-}
+use slaq::client::{Encoding, HttpMethod, SlackRequest};
 
 #[test]
 fn build_post_message_minimal() {
-    let client = NoopClient;
     let channel = "C123".to_string();
-
-    let chat = client.chat();
-    let call = chat.post_message(channel.clone());
-    let req = call.build();
+    let payload = PostMessage::new(channel.clone());
+    let req = payload.build_request();
 
     assert_eq!(req.path, "/chat.postMessage");
     assert!(matches!(req.method, HttpMethod::Post));
@@ -36,16 +23,12 @@ fn build_post_message_minimal() {
 
 #[test]
 fn build_post_message_with_options() {
-    let client = NoopClient;
     let channel = "C456".to_string();
-
-    let chat = client.chat();
-    let req = chat
-        .post_message(channel)
+    let payload = PostMessage::new(channel)
         .text("hello")
         .username("bot")
-        .mrkdwn(true)
-        .build();
+        .mrkdwn(true);
+    let req = payload.build_request();
 
     let json = req.to_json().expect("json");
     assert!(json.contains("\"text\":"));
