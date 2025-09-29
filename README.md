@@ -23,14 +23,14 @@ Default (with transport):
 
 ```
 [dependencies]
-slaq = "0.1"
+slaq = "0.0.1"
 ```
 
 Build-only (no reqwest; you provide HTTP):
 
 ```
 [dependencies]
-slaq = { version = "0.1", default-features = false }
+slaq = { version = "0.0.1", default-features = false }
 ```
 
 Quick Start
@@ -112,7 +112,7 @@ It expects the following environment variables:
 Build-only usage (no reqwest; you send it):
 
 ```rust
-// Cargo.toml: slaq = { version = "0.1", default-features = false }
+// Cargo.toml: slaq = { version = "0.0.1", default-features = false }
 
 use slaq::api::chat::post_message::PostMessage;
 use slaq::client::SlackRequest; // request wrapper

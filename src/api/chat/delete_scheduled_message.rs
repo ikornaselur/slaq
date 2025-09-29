@@ -14,7 +14,7 @@ use serde_with::skip_serializing_none;
     call_alias="DeleteScheduledMessageCall"
 )]
 pub struct DeleteScheduledMessage {
-    /// The channel the scheduled_message is posting to
+    /// The channel the `scheduled_message` is posting to
     pub channel: String,
     /// `scheduled_message_id` returned from call to chat.scheduleMessage
     pub scheduled_message_id: String,

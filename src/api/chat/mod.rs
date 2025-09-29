@@ -1,4 +1,9 @@
 pub mod delete;
 pub mod delete_scheduled_message;
+pub mod me_message;
 pub mod post_ephemeral;
 pub mod post_message;
+pub mod schedule_message;
+pub mod scheduled_messages_list;
+pub mod unfurl;
+pub mod update;
