@@ -1,14 +1,17 @@
 [package]
 name = "slaq"
+description = "A Slack API payload builder and client"
 version = "0.0.1"
 edition = "2024"
+license-file = "LICENSE"
+repository = "https://github.com/ikornaselur/slaq"
 
 [dependencies]
 serde = { version = "1.0.226", features = ["derive"] }
 serde_json = "1.0.145"
 serde_with = "3.14.1"
 thiserror = "2.0.16"
-slaq_macros = { path = "slaq-macros" }
+slaq_macros = { version = "0.0.1", path = "slaq-macros" }
 
 
 [features]
@@ -22,4 +25,4 @@ features = ["json", "blocking", "rustls-tls"]
 optional = true
 
 [dev-dependencies]
-slaq_macros = { path = "slaq-macros" }
+slaq_macros = { version = "0.0.1", path = "slaq-macros" }
