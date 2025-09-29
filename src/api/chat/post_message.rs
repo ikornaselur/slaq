@@ -18,16 +18,22 @@ pub struct PostMessage {
     ///
     /// [0] <https://docs.slack.dev/reference/methods/chat.postmessage#channels>
     pub channel: String,
+    /// (Legacy) Pass true to post the message as the authed user instead of as a bot. Defaults to false. Can only be used by classic apps. See legacy `as_user` parameter below[0].
+    ///
+    /// [0]: <https://docs.slack.dev/reference/methods/chat.postmessage#legacy_as_user>
+    pub as_user: Option<bool>,
     /*
     /// A JSON-based array of structured attachments, presented as a URL-encoded string.
     ///
     /// Note: Should be provided as a Vec<Attachment>
     // pub attachments: Option<Vec<Attachment>>,
      */
-    /// A JSON-based array of structured blocks.
+    /// A JSON-based array of structured blocks, presented as a URL-encoded string.
     ///
     /// Note: Uses a simplified internal `Block` representation.
     pub blocks: Option<Vec<crate::blocks::Block>>,
+    /// This field represents the timestamp of the draft's last update at the time this API is called. If the current message is a draft, this field can be provided to ensure synchronization with the server.
+    pub current_draft_last_updated_ts: Option<String>,
     /// Emoji to use as the icon for this message. Overrides `icon_url`.
     pub icon_emoji: Option<String>,
     /// URL to an image to use as the icon for this message.
