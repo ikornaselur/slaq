@@ -1,6 +1,10 @@
 Slaq: A Slack API Client
 ====
 
+> [!WARNING]
+> This is an experimental crate for now, with plans to expand into a
+> library that fully supports the Slack API
+
 Typed Slack Web API payload builders with an optional reqwest transport. Build
 request payloads in Rust, then send them with the provided blocking client or
 with any HTTP client you prefer.
@@ -101,6 +105,7 @@ cargo run --example hello
 ```
 
 It expects the following environment variables:
+
 - `SLACK_BOT_TOKEN`: your app’s bot token
 - `SLACK_CHANNEL`: the channel ID to post to (e.g. `C01234567`)
 
