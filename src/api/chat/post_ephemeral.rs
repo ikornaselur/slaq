@@ -38,9 +38,13 @@ pub struct PostEphemeral {
     pub link_names: Option<bool>,
     /// Accepts message text formatted in markdown. This argument should not be used in conjunction with `blocks` or `text`. Limit this field to 12,000 characters.
     pub markdown_text: Option<String>,
-    /// Change how messages are treated. Defaults to `none`. See below.
+    /// Change how messages are treated. Defaults to `none`. See below[0].
+    ///
+    /// [0]: <https://docs.slack.dev/reference/methods/chat.postephemeral#formatting>
     pub parse: Option<String>,
-    /// How this field works and whether it is required depends on other fields you use in your API call. See below for more detail.
+    /// How this field works and whether it is required depends on other fields you use in your API call. See below[0] for more detail.
+    ///
+    /// [0]: <https://docs.slack.dev/reference/methods/chat.postephemeral#text_usage>
     pub text: Option<String>,
     /// Provide another message's `ts` value to post this message in a thread. Avoid using a reply's `ts` value; use its parent's value instead. Ephemeral messages in threads are only shown if there is already an active thread.
     pub thread_ts: Option<String>,
