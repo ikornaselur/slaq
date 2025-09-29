@@ -31,7 +31,7 @@ fn build_post_message_with_options() {
         .mrkdwn(true)
         .blocks(vec![
             blocks::Divider::new().build(),
-            blocks::Markdown::new("notes").block_id("b2").build(),
+            blocks::Markdown::new("notes").build(),
         ]);
     let req = payload.build_request();
 

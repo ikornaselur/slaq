@@ -1,5 +1,5 @@
 use proc_macro::TokenStream;
-use quote::{format_ident, quote};
+use quote::quote;
 use syn::parse::Parser;
 use syn::{Attribute, ItemStruct, Lit, Meta, MetaNameValue, Type, parse_macro_input};
 
@@ -8,13 +8,10 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
     let metas = syn::punctuated::Punctuated::<Meta, syn::Token![,]>::parse_terminated
         .parse(args)
         .expect("failed to parse attribute arguments");
-    let input_clone = input.clone();
     let item = parse_macro_input!(input as ItemStruct);
 
     let mut path_lit: Option<String> = None;
-    let mut chat_method: Option<syn::Ident> = None;
     let mut response_ty: Option<syn::Ident> = None;
-    let mut call_alias: Option<syn::Ident> = None;
 
     for meta in metas {
         if let Meta::NameValue(MetaNameValue { path, value, .. }) = meta
@@ -30,23 +27,10 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
                 ) => {
                     path_lit = Some(s.value());
                 }
-                ("chat_method", syn::Expr::Path(p)) => {
-                    if let Some(id) = p.path.get_ident() {
-                        chat_method = Some(id.clone());
-                    }
-                }
                 ("response", syn::Expr::Path(p)) => {
                     if let Some(id) = p.path.get_ident() {
                         response_ty = Some(id.clone());
                     }
-                }
-                (
-                    "call_alias",
-                    syn::Expr::Lit(syn::ExprLit {
-                        lit: Lit::Str(s), ..
-                    }),
-                ) => {
-                    call_alias = Some(format_ident!("{}", s.value()));
                 }
                 _ => {}
             }
@@ -54,16 +38,9 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
     }
 
     let path_lit = path_lit.expect("slack_api requires path=\"...\"");
-    let _chat_method = chat_method.expect("slack_api requires chat_method=... ident");
     let response_ty = response_ty.expect("slack_api requires response=Type");
 
     let struct_ident = item.ident.clone();
-    let _struct_docs: Vec<Attribute> = item
-        .attrs
-        .iter()
-        .filter(|a| a.path().is_ident("doc"))
-        .cloned()
-        .collect();
 
     // Determine required vs optional fields
     let mut required_fields: Vec<(&syn::Ident, &Type)> = Vec::new();
@@ -87,9 +64,6 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
     let req_args_new = required_fields.iter().map(|(id, ty)| {
         quote! { #id: impl ::core::convert::Into<#ty> }
     });
-    let _req_args_chat = required_fields.iter().map(|(id, ty)| {
-        quote! { #id: impl ::core::convert::Into<#ty> }
-    });
     let req_inits = required_fields.iter().map(|(id, _)| {
         quote! { #id: #id.into() }
     });
@@ -98,9 +72,7 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
     });
     let field_inits: Vec<proc_macro2::TokenStream> = req_inits.chain(opt_inits).collect();
 
-    let _req_names = required_fields.iter().map(|(id, _)| quote! { #id });
-
-    let opt_setters_req = optional_fields.iter().map(|(id, ty, docs)| {
+    let opt_setters = optional_fields.iter().map(|(id, ty, docs)| {
         if is_bool(ty) {
             quote! {
                 #( #docs )*
@@ -122,20 +94,16 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
         }
     });
 
-    // MethodCall impl
-    let _ = call_alias; // currently unused
-
-    let input_ts: proc_macro2::TokenStream = input_clone.into();
     let chat_path_doc = format!("Slack API path: {path_lit}");
     let expanded = quote! {
-        #input_ts
+        #item
 
         impl #struct_ident {
             #[must_use]
             pub fn new( #( #req_args_new ),* ) -> Self {
                 Self { #( #field_inits ),* }
             }
-            #( #opt_setters_req )*
+            #( #opt_setters )*
             /// Builds a transport-agnostic Slack request containing this payload.
             #[must_use]
             #[doc = #chat_path_doc]
@@ -203,7 +171,6 @@ pub fn block(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let kind_lit = kind_lit.expect("block requires kind=\"...\"");
 
-    let input_clone = input.clone();
     let item = parse_macro_input!(input as ItemStruct);
     let struct_ident = item.ident.clone();
 
@@ -285,12 +252,9 @@ pub fn block(args: TokenStream, input: TokenStream) -> TokenStream {
         });
     }
 
-    let _input_ts: proc_macro2::TokenStream = input_clone.into();
-    let kind_str = kind_lit.clone();
     let expanded = {
-        let item_struct = item.clone();
         quote! {
-            #item_struct
+            #item
 
             impl #struct_ident {
                 #[must_use]
@@ -303,7 +267,7 @@ pub fn block(args: TokenStream, input: TokenStream) -> TokenStream {
                     let mut map = ::serde_json::Map::new();
                     map.insert(
                         ::std::string::String::from("type"),
-                        ::serde_json::Value::String(::std::string::String::from(#kind_str)),
+                        ::serde_json::Value::String(::std::string::String::from(#kind_lit)),
                     );
                     #( #build_inserts_req )*
                     #( #build_inserts_opt )*
