@@ -19,7 +19,7 @@ pub struct ScheduleMessage {
     /// [0]: <https://docs.slack.dev/reference/methods/chat.schedulemessage#channels>
     pub channel: String,
     /// Unix timestamp representing the future time the message should post to Slack.
-    pub post_at: String,
+    pub post_at: i64,
     /*
     /// A JSON-based array of structured attachments, presented as a URL-encoded string.
     ///
@@ -74,4 +74,3 @@ pub struct ScheduleMessageResponse {
     /// When the message is scheduled to post.
     pub post_at: String,
 }
-
