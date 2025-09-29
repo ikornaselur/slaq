@@ -22,7 +22,7 @@ pub struct PostMessage {
     /// A JSON-based array of structured attachments, presented as a URL-encoded string.
     ///
     /// Note: Should be provided as a Vec<Attachment>
-    // pub attachments: Option<Vec<Attachment>>
+    // pub attachments: Option<Vec<Attachment>>,
      */
     /// A JSON-based array of structured blocks.
     ///
