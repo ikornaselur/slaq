@@ -3,7 +3,7 @@ Slaq: A Slack API Client
 
 > [!WARNING]
 > This is an experimental crate for now, with plans to expand into a
-> library that fully supports the Slack API
+> library that fully supports the Slack API.
 
 Typed Slack Web API payload builders with an optional reqwest transport. Build
 request payloads in Rust, then send them with the provided blocking client or
@@ -76,6 +76,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+Supported Methods
+-----------------
+
+The following Slack Web API chat.* methods are currently available as typed payload builders:
+
+- chat.postMessage → `api::chat::post_message::PostMessage`
+- chat.postEphemeral → `api::chat::post_ephemeral::PostEphemeral`
+- chat.delete → `api::chat::delete::Delete`
+- chat.deleteScheduledMessage → `api::chat::delete_scheduled_message::DeleteScheduledMessage`
+- chat.meMessage → `api::chat::me_message::MeMessage`
+- chat.scheduleMessage → `api::chat::schedule_message::ScheduleMessage`
+- chat.scheduledMessages.list → `api::chat::scheduled_messages_list::ScheduledMessagesList`
+- chat.unfurl → `api::chat::unfurl::Unfurl`
+- chat.update → `api::chat::update::Update`
+
 Blocks
 ------
 
@@ -86,8 +101,8 @@ use slaq::blocks;
 use slaq::api::chat::post_message::PostMessage;
 
 let blocks = vec![
-    blocks::markdown("Hello").block_id("b1").build(),
-    blocks::divider().build(),
+    blocks::Markdown::new("Hello").build(),
+    blocks::Divider::new().build(),
 ];
 
 let payload = PostMessage::new(channel)
