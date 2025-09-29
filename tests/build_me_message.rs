@@ -27,4 +27,3 @@ fn from_method_into_request_me_message() {
     let req: SlackRequest<MeMessage> = method.into();
     assert_eq!(req.path, "/chat.meMessage");
 }
-

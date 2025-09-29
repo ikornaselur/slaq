@@ -45,4 +45,3 @@ fn from_method_into_request_update() {
     let json = req.to_json().expect("json");
     assert!(json.contains("\"text\":\"hi\""));
 }
-

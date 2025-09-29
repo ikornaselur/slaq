@@ -35,4 +35,3 @@ pub struct Unfurl {
 #[derive(Debug, Clone, Deserialize)]
 /// Response for `chat.unfurl`.
 pub struct UnfurlResponse {}
-

@@ -45,4 +45,3 @@ pub struct ScheduledMessage {
     pub date_created: i64,
     pub text: String,
 }
-

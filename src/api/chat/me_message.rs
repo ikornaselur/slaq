@@ -28,4 +28,3 @@ pub struct MeMessageResponse {
     /// Timestamp of the posted message.
     pub ts: String,
 }
-

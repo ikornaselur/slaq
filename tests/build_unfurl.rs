@@ -25,11 +25,14 @@ fn build_unfurl_minimal() {
 
 #[test]
 fn from_method_into_request_unfurl() {
-    let method = Unfurl::new("C999".to_string(), "1727612345.000300".to_string(), "{}".to_string())
-        .user_auth_required(true);
+    let method = Unfurl::new(
+        "C999".to_string(),
+        "1727612345.000300".to_string(),
+        "{}".to_string(),
+    )
+    .user_auth_required(true);
     let req: SlackRequest<Unfurl> = method.into();
     assert_eq!(req.path, "/chat.unfurl");
     let json = req.to_json().expect("json");
     assert!(json.contains("\"user_auth_required\":true"));
 }
-

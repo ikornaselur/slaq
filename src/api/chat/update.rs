@@ -56,4 +56,3 @@ pub struct UpdateResponse {
     /// Timestamp of the updated message.
     pub ts: String,
 }
-
