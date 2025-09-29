@@ -6,9 +6,9 @@ use slaq::client::{Encoding, HttpMethod, SlackRequest};
 #[test]
 fn build_schedule_message_minimal() {
     let channel = "C123".to_string();
-    let post_at: i64 = 299876400;
+    let post_at: i64 = 299_876_400;
 
-    let payload = ScheduleMessage::new(channel.clone(), post_at.clone());
+    let payload = ScheduleMessage::new(channel.clone(), post_at);
     let req = payload.build_request();
     assert_eq!(req.path, "/chat.scheduleMessage");
     assert!(matches!(req.method, HttpMethod::Post));
@@ -23,7 +23,7 @@ fn build_schedule_message_minimal() {
 
 #[test]
 fn from_method_into_request_schedule_message() {
-    let method = ScheduleMessage::new("C999".to_string(), 299876401i64).text("hi later");
+    let method = ScheduleMessage::new("C999".to_string(), 299_876_401i64).text("hi later");
     let req: SlackRequest<ScheduleMessage> = method.into();
     assert_eq!(req.path, "/chat.scheduleMessage");
     let json = req.to_json().expect("json");
