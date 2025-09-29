@@ -31,4 +31,3 @@ fn from_method_into_request_delete() {
     let json = req.to_json().expect("json");
     assert!(json.contains("\"as_user\":true"));
 }
-
