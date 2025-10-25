@@ -94,7 +94,7 @@ The following Slack Web API chat.* methods are currently available as typed payl
 Blocks
 ------
 
-This crate includes a growing BlockKit-like builder with several blocks today: divider, markdown, header, image, file, context, context actions, actions, and video.
+This crate includes a growing BlockKit-like builder with several blocks today: divider, markdown, header, image, file, context, context actions, actions, video, rich text, and table.
 
 ```rust
 use slaq::blocks::{self, BlockElement, ButtonElement, ButtonStyle, PlainText};

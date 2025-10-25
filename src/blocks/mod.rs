@@ -4,12 +4,14 @@
 //! and validations derived from Slack's documentation. 
 
 pub mod elements;
+pub mod rich_text;
 pub mod text;
 
 pub use elements::{
     BlockElement, ButtonElement, ButtonStyle, ConfirmationDialog, ContextActionElement,
     ContextElement, FeedbackButton, FeedbackButtons, IconButton, SelectOption, StaticSelectElement,
 };
+pub use rich_text::{BroadcastRange, ListStyle, RichTextElement, RichTextNode, TextStyle};
 pub use text::{MrkdwnText, PlainText, TextObject};
 
 use serde::Serialize;
@@ -27,6 +29,9 @@ const MAX_SECTION_FIELDS: usize = 10;
 const MAX_INPUT_TEXT_LEN: usize = 2000;
 // https://docs.slack.dev/reference/block-kit/blocks/video-block
 const MAX_VIDEO_TEXT_LEN: usize = 200;
+// https://docs.slack.dev/reference/block-kit/blocks/table-block
+const MAX_TABLE_ROWS: usize = 100;
+const MAX_TABLE_COLUMNS: usize = 20;
 
 /// Errors returned when validating or building a block payload.
 #[derive(Debug, Clone, Error, PartialEq, Eq)]
@@ -66,6 +71,8 @@ pub enum Block {
     Section(Section),
     Input(Input),
     Video(Video),
+    RichText(RichText),
+    Table(Table),
 }
 
 impl Block {
@@ -135,24 +142,6 @@ pub struct SlackFileRef {
     pub url: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub id: Option<String>,
-}
-
-impl SlackFileRef {
-    #[must_use]
-    pub fn with_url(url: impl Into<String>) -> Self {
-        Self {
-            url: Some(url.into()),
-            id: None,
-        }
-    }
-
-    #[must_use]
-    pub fn with_id(id: impl Into<String>) -> Self {
-        Self {
-            url: None,
-            id: Some(id.into()),
-        }
-    }
 }
 
 #[slaq_macros::block(kind = "file")]
@@ -280,6 +269,94 @@ pub struct Video {
     /// Optional block identifier.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub block_id: Option<String>,
+}
+
+#[slaq_macros::block(kind = "rich_text", validate = Self::validate)]
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct RichText {
+    /// Nested rich text elements mirroring Slack's rich_text schema.
+    pub elements: Vec<rich_text::RichTextElement>,
+    /// Optional block identifier.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub block_id: Option<String>,
+}
+
+#[slaq_macros::block(kind = "table", validate = Self::validate)]
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct Table {
+    /// Rows within the table. Maximum of 100 rows.
+    pub rows: Vec<Vec<TableCell>>,
+    /// Optional column settings (alignment and wrapping), up to 20 columns.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub column_settings: Option<Vec<ColumnSetting>>,
+    /// Optional block identifier.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub block_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum TableCell {
+    RawText {
+        text: String,
+    },
+    RichText {
+        elements: Vec<rich_text::RichTextElement>,
+    },
+}
+
+impl TableCell {
+    #[must_use]
+    pub fn raw(text: impl Into<String>) -> Self {
+        TableCell::RawText { text: text.into() }
+    }
+
+    #[must_use]
+    pub fn rich(elements: impl Into<Vec<rich_text::RichTextElement>>) -> Self {
+        TableCell::RichText {
+            elements: elements.into(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct ColumnSetting {
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub align: Option<ColumnAlignment>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub is_wrapped: Option<bool>,
+}
+
+impl ColumnSetting {
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            align: None,
+            is_wrapped: None,
+        }
+    }
+
+    #[must_use]
+    pub fn align(mut self, value: ColumnAlignment) -> Self {
+        self.align = Some(value);
+        self
+    }
+
+    #[must_use]
+    pub fn wrap(mut self, value: bool) -> Self {
+        self.is_wrapped = Some(value);
+        self
+    }
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ColumnAlignment {
+    Left,
+    Center,
+    Right,
 }
 
 impl Image {
@@ -458,6 +535,54 @@ impl Video {
                 return Err(BuildError::message(
                     "video block title_url must use https scheme",
                 ));
+            }
+        }
+        Ok(())
+    }
+}
+
+impl RichText {
+    fn validate(&self) -> Result<(), BuildError> {
+        if self.elements.is_empty() {
+            return Err(BuildError::message(
+                "rich_text block requires at least one element",
+            ));
+        }
+        Ok(())
+    }
+}
+
+impl Table {
+    fn validate(&self) -> Result<(), BuildError> {
+        if self.rows.is_empty() {
+            return Err(BuildError::message("table block requires at least one row"));
+        }
+        if self.rows.len() > MAX_TABLE_ROWS {
+            return Err(BuildError::message(format!(
+                "table block supports at most {} rows",
+                MAX_TABLE_ROWS
+            )));
+        }
+        for (idx, row) in self.rows.iter().enumerate() {
+            if row.is_empty() {
+                return Err(BuildError::message(format!(
+                    "table block row {} must contain at least one cell",
+                    idx
+                )));
+            }
+            if row.len() > MAX_TABLE_COLUMNS {
+                return Err(BuildError::message(format!(
+                    "table block rows support at most {} cells",
+                    MAX_TABLE_COLUMNS
+                )));
+            }
+        }
+        if let Some(settings) = &self.column_settings {
+            if settings.len() > MAX_TABLE_COLUMNS {
+                return Err(BuildError::message(format!(
+                    "table block column_settings supports at most {} entries",
+                    MAX_TABLE_COLUMNS
+                )));
             }
         }
         Ok(())
@@ -665,6 +790,64 @@ mod tests {
         assert!(
             err.to_string()
                 .contains("video block video_url must use https scheme")
+        );
+    }
+
+    #[test]
+    fn rich_text_serializes_section() {
+        let section = rich_text::RichTextElement::section(vec![
+            rich_text::RichTextNode::text("Hello"),
+            rich_text::RichTextNode::styled_text("world", rich_text::TextStyle::new().bold()),
+        ]);
+        let block = RichText::new(vec![section])
+            .build()
+            .expect("rich text build");
+
+        let json = serde_json::to_string(&block).unwrap();
+        assert!(json.contains("\"type\":\"rich_text\""));
+        assert!(json.contains("Hello"));
+        assert!(json.contains("world"));
+    }
+
+    #[test]
+    fn rich_text_requires_elements() {
+        let err = RichText::new(Vec::<rich_text::RichTextElement>::new())
+            .build()
+            .expect_err("expected rich text error");
+        assert!(
+            err.to_string()
+                .contains("rich_text block requires at least one element")
+        );
+    }
+
+    #[test]
+    fn table_serializes_raw_rows() {
+        let rows = vec![
+            vec![TableCell::raw("Header A"), TableCell::raw("Header B")],
+            vec![TableCell::raw("Data 1A"), TableCell::raw("Data 1B")],
+        ];
+        let table = Table::new(rows)
+            .column_settings(vec![
+                ColumnSetting::new().align(ColumnAlignment::Left),
+                ColumnSetting::new().wrap(true),
+            ])
+            .build()
+            .expect("table build");
+
+        let json = serde_json::to_string(&table).unwrap();
+        assert!(json.contains("\"type\":\"table\""));
+        assert!(json.contains("Header A"));
+        assert!(json.contains("Data 1B"));
+    }
+
+    #[test]
+    fn table_requires_rows() {
+        let err = Table::new(Vec::<Vec<TableCell>>::new())
+            .build()
+            .expect_err("expected table error");
+        assert!(
+            err.to_string()
+                .contains("table block requires at least one row")
         );
     }
 }
