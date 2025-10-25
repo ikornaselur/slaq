@@ -15,6 +15,17 @@ pub use text::{MrkdwnText, PlainText, TextObject};
 use serde::Serialize;
 use thiserror::Error;
 
+// https://docs.slack.dev/reference/block-kit/blocks/context-block/
+const MAX_CONTEXT_ELEMENTS: usize = 10;
+// https://docs.slack.dev/reference/block-kit/blocks/context-actions-block
+const MAX_CONTEXT_ACTIONS_ELEMENTS: usize = 5;
+// https://docs.slack.dev/reference/block-kit/blocks/actions-block
+const MAX_ACTIONS_ELEMENTS: usize = 25;
+// https://docs.slack.dev/reference/block-kit/blocks/section-block
+const MAX_SECTION_FIELDS: usize = 10;
+// https://docs.slack.dev/reference/block-kit/blocks/input-block
+const MAX_INPUT_TEXT_LEN: usize = 2000;
+
 /// Errors returned when validating or building a block payload.
 #[derive(Debug, Clone, Error, PartialEq, Eq)]
 pub enum BuildError {
@@ -47,6 +58,7 @@ pub enum Block {
     ContextActions(ContextActions),
     Actions(Actions),
     Section(Section),
+    Input(Input),
 }
 
 impl Block {
@@ -209,6 +221,28 @@ pub struct Section {
     pub block_id: Option<String>,
 }
 
+#[slaq_macros::block(kind = "input", validate = Self::validate)]
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct Input {
+    /// Label shown above the input element (plain_text only, <= 2000 chars).
+    pub label: PlainText,
+    /// The interactive element to render (text input, select, etc.).
+    pub element: BlockElement,
+    /// Dispatches block_actions payloads on user interaction. Unsupported for file_input.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub dispatch_action: Option<bool>,
+    /// Optional helper text displayed below the input.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub hint: Option<PlainText>,
+    /// Whether the field may be left empty on submission.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub optional: Option<bool>,
+    /// Optional block identifier.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub block_id: Option<String>,
+}
+
 impl Image {
     fn validate(&self) -> Result<(), BuildError> {
         match (self.image_url.as_ref(), self.slack_file.as_ref()) {
@@ -243,10 +277,11 @@ impl Context {
                 "context block requires at least one element",
             ));
         }
-        if self.elements.len() > 10 {
-            return Err(BuildError::message(
-                "context block supports at most 10 elements",
-            ));
+        if self.elements.len() > MAX_CONTEXT_ELEMENTS {
+            return Err(BuildError::message(format!(
+                "context block supports at most {} elements",
+                MAX_CONTEXT_ELEMENTS
+            )));
         }
         Ok(())
     }
@@ -259,10 +294,11 @@ impl ContextActions {
                 "context_actions block requires at least one element",
             ));
         }
-        if self.elements.len() > 5 {
-            return Err(BuildError::message(
-                "context_actions block supports at most 5 elements",
-            ));
+        if self.elements.len() > MAX_CONTEXT_ACTIONS_ELEMENTS {
+            return Err(BuildError::message(format!(
+                "context_actions block supports at most {} elements",
+                MAX_CONTEXT_ACTIONS_ELEMENTS
+            )));
         }
         Ok(())
     }
@@ -275,10 +311,11 @@ impl Actions {
                 "actions block requires at least one element",
             ));
         }
-        if self.elements.len() > 25 {
-            return Err(BuildError::message(
-                "actions block supports at most 25 elements",
-            ));
+        if self.elements.len() > MAX_ACTIONS_ELEMENTS {
+            return Err(BuildError::message(format!(
+                "actions block supports at most {} elements",
+                MAX_ACTIONS_ELEMENTS
+            )));
         }
         Ok(())
     }
@@ -300,10 +337,43 @@ impl Section {
                     "section block fields must contain at least one entry",
                 ));
             }
-            if fields.len() > 10 {
-                return Err(BuildError::message(
-                    "section block supports at most 10 fields",
-                ));
+            if fields.len() > MAX_SECTION_FIELDS {
+                return Err(BuildError::message(format!(
+                    "section block supports at most {} fields",
+                    MAX_SECTION_FIELDS
+                )));
+            }
+        }
+        Ok(())
+    }
+}
+
+impl Input {
+    fn validate(&self) -> Result<(), BuildError> {
+        if self.label.text.is_empty() {
+            return Err(BuildError::message("input block label must not be empty"));
+        }
+        if self.label.text.len() > MAX_INPUT_TEXT_LEN {
+            return Err(BuildError::message(format!(
+                "input block label cannot exceed {} characters",
+                MAX_INPUT_TEXT_LEN
+            )));
+        }
+        if let Some(hint) = &self.hint {
+            if hint.text.len() > MAX_INPUT_TEXT_LEN {
+                return Err(BuildError::message(format!(
+                    "input block hint cannot exceed {} characters",
+                    MAX_INPUT_TEXT_LEN
+                )));
+            }
+        }
+        if self.dispatch_action.unwrap_or(false) {
+            if let Some(element_type) = self.element.0.get("type").and_then(|v| v.as_str()) {
+                if element_type == "file_input" {
+                    return Err(BuildError::message(
+                        "input block cannot use dispatch_action with file_input element",
+                    ));
+                }
             }
         }
         Ok(())
@@ -444,6 +514,39 @@ mod tests {
         assert!(
             err.to_string()
                 .contains("section block requires text or at least one field")
+        );
+    }
+
+    #[test]
+    fn input_serializes_with_text_input() {
+        let element = BlockElement(serde_json::json!({
+            "type": "plain_text_input",
+            "action_id": "input_1"
+        }));
+        let block = Input::new(PlainText::new("Reason"), element)
+            .hint(PlainText::new("Optional"))
+            .build()
+            .expect("input build");
+
+        let json = serde_json::to_string(&block).unwrap();
+        assert!(json.contains("\"type\":\"input\""));
+        assert!(json.contains("Reason"));
+        assert!(json.contains("plain_text_input"));
+    }
+
+    #[test]
+    fn input_dispatch_action_file_input_fails() {
+        let element = BlockElement(serde_json::json!({
+            "type": "file_input",
+            "action_id": "files"
+        }));
+        let err = Input::new(PlainText::new("Upload"), element)
+            .dispatch_action(true)
+            .build()
+            .expect_err("expected input error");
+        assert!(
+            err.to_string()
+                .contains("input block cannot use dispatch_action with file_input")
         );
     }
 }
