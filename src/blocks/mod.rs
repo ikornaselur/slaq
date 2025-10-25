@@ -25,6 +25,8 @@ const MAX_ACTIONS_ELEMENTS: usize = 25;
 const MAX_SECTION_FIELDS: usize = 10;
 // https://docs.slack.dev/reference/block-kit/blocks/input-block
 const MAX_INPUT_TEXT_LEN: usize = 2000;
+// https://docs.slack.dev/reference/block-kit/blocks/video-block
+const MAX_VIDEO_TEXT_LEN: usize = 200;
 
 /// Errors returned when validating or building a block payload.
 #[derive(Debug, Clone, Error, PartialEq, Eq)]
@@ -45,6 +47,10 @@ impl BuildError {
 
 pub type BuildResult = Result<Block, BuildError>;
 
+fn is_https(url: &str) -> bool {
+    url.starts_with("https://")
+}
+
 /// Enumeration of all supported blocks.
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -59,6 +65,7 @@ pub enum Block {
     Actions(Actions),
     Section(Section),
     Input(Input),
+    Video(Video),
 }
 
 impl Block {
@@ -243,6 +250,38 @@ pub struct Input {
     pub block_id: Option<String>,
 }
 
+#[slaq_macros::block(kind = "video", validate = Self::validate)]
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct Video {
+    /// Video title in the form of a plain-text object (must be < 200 characters).
+    pub title: PlainText,
+    /// HTTPS URL of the embeddable video.
+    pub video_url: String,
+    /// HTTPS thumbnail image URL to display for the video.
+    pub thumbnail_url: String,
+    /// Tooltip for the video, required for accessibility.
+    pub alt_text: String,
+    /// Optional description (plain_text, < 200 characters).
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub description: Option<PlainText>,
+    /// Hyperlink for the title text (must be HTTPS).
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub title_url: Option<String>,
+    /// Provider icon URL, such as a service logo.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub provider_icon_url: Option<String>,
+    /// Provider name, e.g., YouTube.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub provider_name: Option<String>,
+    /// Author name to display (< 50 characters).
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub author_name: Option<String>,
+    /// Optional block identifier.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub block_id: Option<String>,
+}
+
 impl Image {
     fn validate(&self) -> Result<(), BuildError> {
         match (self.image_url.as_ref(), self.slack_file.as_ref()) {
@@ -374,6 +413,51 @@ impl Input {
                         "input block cannot use dispatch_action with file_input element",
                     ));
                 }
+            }
+        }
+        Ok(())
+    }
+}
+
+impl Video {
+    fn validate(&self) -> Result<(), BuildError> {
+        if self.title.text.is_empty() {
+            return Err(BuildError::message("video block title must not be empty"));
+        }
+        if self.title.text.len() > MAX_VIDEO_TEXT_LEN {
+            return Err(BuildError::message(format!(
+                "video block title cannot exceed {} characters",
+                MAX_VIDEO_TEXT_LEN
+            )));
+        }
+        if let Some(description) = &self.description {
+            if description.text.len() > MAX_VIDEO_TEXT_LEN {
+                return Err(BuildError::message(format!(
+                    "video block description cannot exceed {} characters",
+                    MAX_VIDEO_TEXT_LEN
+                )));
+            }
+        }
+        if self.alt_text.trim().is_empty() {
+            return Err(BuildError::message(
+                "video block alt_text must not be empty",
+            ));
+        }
+        if !is_https(&self.video_url) {
+            return Err(BuildError::message(
+                "video block video_url must use https scheme",
+            ));
+        }
+        if !is_https(&self.thumbnail_url) {
+            return Err(BuildError::message(
+                "video block thumbnail_url must use https scheme",
+            ));
+        }
+        if let Some(title_url) = &self.title_url {
+            if !is_https(title_url) {
+                return Err(BuildError::message(
+                    "video block title_url must use https scheme",
+                ));
             }
         }
         Ok(())
@@ -547,6 +631,40 @@ mod tests {
         assert!(
             err.to_string()
                 .contains("input block cannot use dispatch_action with file_input")
+        );
+    }
+
+    #[test]
+    fn video_serializes_minimal() {
+        let block = Video::new(
+            PlainText::new("Slack demo"),
+            "https://example.com/embed/123",
+            "https://example.com/thumb.jpg",
+            "Slack demo video",
+        )
+        .build()
+        .expect("video build");
+
+        let json = serde_json::to_string(&block).unwrap();
+        assert!(json.contains("\"type\":\"video\""));
+        assert!(json.contains("Slack demo"));
+        assert!(json.contains("thumb.jpg"));
+    }
+
+    #[test]
+    fn video_rejects_non_https_urls() {
+        let err = Video::new(
+            PlainText::new("Slack demo"),
+            "http://example.com/embed/123",
+            "https://example.com/thumb.jpg",
+            "Slack demo video",
+        )
+        .build()
+        .expect_err("expected https validation");
+
+        assert!(
+            err.to_string()
+                .contains("video block video_url must use https scheme")
         );
     }
 }

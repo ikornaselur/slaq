@@ -94,7 +94,7 @@ The following Slack Web API chat.* methods are currently available as typed payl
 Blocks
 ------
 
-This crate includes a growing BlockKit-like builder with several blocks today: divider, markdown, header, image, file, context, context actions, and actions.
+This crate includes a growing BlockKit-like builder with several blocks today: divider, markdown, header, image, file, context, context actions, actions, and video.
 
 ```rust
 use slaq::blocks::{self, BlockElement, ButtonElement, ButtonStyle, PlainText};
@@ -106,6 +106,13 @@ let blocks = vec![
     blocks::Image::new("Kittens!")
         .image_url("https://placekitten.com/200/300")
         .build()?,
+    blocks::Video::new(
+        PlainText::new("Highlights"),
+        "https://example.com/embed/abc",
+        "https://example.com/thumb.jpg",
+        "Product demo video",
+    )
+    .build()?,
     blocks::Actions::new(vec![BlockElement::from(
         ButtonElement::new(PlainText::new("Acknowledge"), "ack")
             .style(ButtonStyle::Primary),
