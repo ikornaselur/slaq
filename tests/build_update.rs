@@ -28,8 +28,10 @@ fn build_update_with_options() {
         .text("updated")
         .link_names(true)
         .blocks(vec![
-            blocks::Divider::new().build(),
-            blocks::Markdown::new("updated notes").build(),
+            blocks::Divider::new().build().expect("divider"),
+            blocks::Markdown::new("updated notes")
+                .build()
+                .expect("markdown"),
         ]);
     let req = payload.build_request();
     let json = req.to_json().expect("json");

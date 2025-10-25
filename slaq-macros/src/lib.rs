@@ -1,7 +1,8 @@
 use proc_macro::TokenStream;
 use quote::quote;
+use syn::meta::ParseNestedMeta;
 use syn::parse::Parser;
-use syn::{Attribute, ItemStruct, Lit, Meta, MetaNameValue, Type, parse_macro_input};
+use syn::{Attribute, ExprPath, ItemStruct, Lit, Meta, MetaNameValue, Type, parse_macro_input};
 
 #[proc_macro_attribute]
 pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
@@ -123,6 +124,32 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
     expanded.into()
 }
 
+#[derive(Default)]
+struct BlockFieldMeta {
+    max_items: Option<usize>,
+}
+
+fn parse_block_field_meta(field: &syn::Field) -> BlockFieldMeta {
+    let mut meta = BlockFieldMeta::default();
+
+    for attr in &field.attrs {
+        if attr.path().is_ident("block") {
+            attr.parse_nested_meta(|nested: ParseNestedMeta| {
+                if nested.path.is_ident("max_items") {
+                    let lit: syn::LitInt = nested.value()?.parse()?;
+                    meta.max_items = Some(lit.base10_parse()?);
+                    Ok(())
+                } else {
+                    Err(nested.error("unsupported block field attribute"))
+                }
+            })
+            .expect("failed to parse #[block(...)] attribute");
+        }
+    }
+
+    meta
+}
+
 fn is_option(ty: &Type) -> Option<&Type> {
     if let Type::Path(type_path) = ty
         && let Some(seg) = type_path.path.segments.last()
@@ -152,24 +179,30 @@ pub fn block(args: TokenStream, input: TokenStream) -> TokenStream {
         .expect("failed to parse attribute arguments");
 
     let mut kind_lit: Option<String> = None;
+    let mut validate_fn: Option<ExprPath> = None;
     for meta in metas {
         if let Meta::NameValue(MetaNameValue { path, value, .. }) = meta
             && let Some(ident) = path.get_ident().cloned()
         {
             let key = ident.to_string();
-            if let (
-                "kind",
-                syn::Expr::Lit(syn::ExprLit {
-                    lit: Lit::Str(s), ..
-                }),
-            ) = (key.as_str(), value)
-            {
-                kind_lit = Some(s.value());
+            match (key.as_str(), value) {
+                (
+                    "kind",
+                    syn::Expr::Lit(syn::ExprLit {
+                        lit: Lit::Str(s), ..
+                    }),
+                ) => {
+                    kind_lit = Some(s.value());
+                }
+                ("validate", syn::Expr::Path(p)) => {
+                    validate_fn = Some(p);
+                }
+                _ => {}
             }
         }
     }
 
-    let kind_lit = kind_lit.expect("block requires kind=\"...\"");
+    let _kind_lit = kind_lit.expect("block requires kind=\"...\"");
 
     let item = parse_macro_input!(input as ItemStruct);
     let struct_ident = item.ident.clone();
@@ -177,8 +210,43 @@ pub fn block(args: TokenStream, input: TokenStream) -> TokenStream {
     // Determine required vs optional fields
     let mut required_fields: Vec<(&syn::Ident, &Type)> = Vec::new();
     let mut optional_fields: Vec<(&syn::Ident, &Type, Vec<Attribute>)> = Vec::new();
+    let mut field_validations: Vec<proc_macro2::TokenStream> = Vec::new();
     for field in &item.fields {
         let ident = field.ident.as_ref().expect("named fields only");
+
+        let meta = parse_block_field_meta(field);
+        if let Some(max) = meta.max_items {
+            let field_name = ident.to_string();
+            let tokens = if is_option(&field.ty).is_some() {
+                quote! {
+                    if let ::core::option::Option::Some(value) = self.#ident.as_ref() {
+                        if value.len() > #max {
+                            return ::core::result::Result::Err(
+                                crate::blocks::BuildError::message(format!(
+                                    "{} can contain at most {} items",
+                                    #field_name,
+                                    #max
+                                )),
+                            );
+                        }
+                    }
+                }
+            } else {
+                quote! {
+                    if self.#ident.len() > #max {
+                        return ::core::result::Result::Err(
+                            crate::blocks::BuildError::message(format!(
+                                "{} can contain at most {} items",
+                                #field_name,
+                                #max
+                            )),
+                        );
+                    }
+                }
+            };
+            field_validations.push(tokens);
+        }
+
         match is_option(&field.ty) {
             Some(inner) => {
                 let docs: Vec<Attribute> = field
@@ -228,29 +296,18 @@ pub fn block(args: TokenStream, input: TokenStream) -> TokenStream {
         }
     });
 
-    // build() -> crate::blocks::Block
-    let mut build_inserts_req: Vec<proc_macro2::TokenStream> = Vec::new();
-    for (id, _) in &required_fields {
-        let key = id.to_string();
-        build_inserts_req.push(quote! {
-            map.insert(
-                ::std::string::String::from(#key),
-                ::serde_json::to_value(self.#id).expect("serialize required field"),
-            );
-        });
-    }
-    let mut build_inserts_opt: Vec<proc_macro2::TokenStream> = Vec::new();
-    for (id, _, _) in &optional_fields {
-        let key = id.to_string();
-        build_inserts_opt.push(quote! {
-            if let ::core::option::Option::Some(v) = self.#id {
-                map.insert(
-                    ::std::string::String::from(#key),
-                    ::serde_json::to_value(v).expect("serialize optional field"),
-                );
+    let custom_validate_tokens = validate_fn.map(|path| quote! { #path(self)?; });
+    let validate_fn_impl = {
+        let field_checks = field_validations;
+        let custom_tokens = custom_validate_tokens.unwrap_or_else(|| quote! {});
+        quote! {
+            fn __slaq_validate(&self) -> ::core::result::Result<(), crate::blocks::BuildError> {
+                #( #field_checks )*
+                #custom_tokens
+                ::core::result::Result::Ok(())
             }
-        });
-    }
+        }
+    };
 
     let expanded = {
         quote! {
@@ -263,15 +320,17 @@ pub fn block(args: TokenStream, input: TokenStream) -> TokenStream {
                 }
                 #( #opt_setters )*
                 #[must_use]
-                pub fn build(self) -> crate::blocks::Block {
-                    let mut map = ::serde_json::Map::new();
-                    map.insert(
-                        ::std::string::String::from("type"),
-                        ::serde_json::Value::String(::std::string::String::from(#kind_lit)),
-                    );
-                    #( #build_inserts_req )*
-                    #( #build_inserts_opt )*
-                    crate::blocks::Block(::serde_json::Value::Object(map))
+                pub fn build(self) -> ::core::result::Result<crate::blocks::Block, crate::blocks::BuildError> {
+                    self.__slaq_validate()?;
+                    ::core::result::Result::Ok(crate::blocks::Block::from(self))
+                }
+
+                #validate_fn_impl
+            }
+
+            impl ::core::convert::From<#struct_ident> for crate::blocks::Block {
+                fn from(value: #struct_ident) -> crate::blocks::Block {
+                    crate::blocks::Block::#struct_ident(value)
                 }
             }
         }

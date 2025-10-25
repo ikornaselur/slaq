@@ -1,36 +1,313 @@
-//! Minimal BlockKit-like builders for composing message blocks.
+//! Typed builders for Slack Block Kit blocks.
 //!
-//! This module currently supports two simple block variants:
-//! - Divider: `{ "type": "divider", "block_id": "..."? }`
-//! - Markdown: `{ "type": "markdown", "text": "...", "block_id": "..."? }`
-//!
-//! These are intentionally simplified and not a full Block Kit implementation.
+//! This module is expanding to cover every block type with ergonomic builders
+//! and validations derived from Slack's documentation. 
+
+pub mod elements;
+pub mod text;
+
+pub use elements::{
+    BlockElement, ButtonElement, ButtonStyle, ConfirmationDialog, ContextActionElement,
+    ContextElement, FeedbackButton, FeedbackButtons, IconButton, SelectOption, StaticSelectElement,
+};
+pub use text::{MrkdwnText, PlainText, TextObject};
 
 use serde::Serialize;
-use serde_json as json;
+use thiserror::Error;
 
-/// A minimal set of supported blocks.
-#[derive(Debug, Clone, Serialize)]
-#[serde(transparent)]
-pub struct Block(pub json::Value);
+/// Errors returned when validating or building a block payload.
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
+pub enum BuildError {
+    /// Generic failure with a user-facing message.
+    #[error("{message}")]
+    Message { message: String },
+}
+
+impl BuildError {
+    /// Convenience constructor for `BuildError::Message`.
+    pub fn message(message: impl Into<String>) -> Self {
+        Self::Message {
+            message: message.into(),
+        }
+    }
+}
+
+pub type BuildResult = Result<Block, BuildError>;
+
+/// Enumeration of all supported blocks.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum Block {
+    Divider(Divider),
+    Markdown(Markdown),
+    Header(Header),
+    Image(Image),
+    File(File),
+    Context(Context),
+    ContextActions(ContextActions),
+    Actions(Actions),
+    Section(Section),
+}
+
+impl Block {
+    /// Serialize this block into a `serde_json::Value`.
+    #[must_use]
+    pub fn to_value(&self) -> serde_json::Value {
+        serde_json::to_value(self).expect("block serialization should never fail")
+    }
+}
 
 #[slaq_macros::block(kind = "divider")]
-#[derive(Debug, Clone)]
-/// Visually separates pieces of info inside of a message.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct Divider {
     /// A unique identifier for a block. If not specified, one will be generated.
-    /// Maximum length for this field is 255 characters. `block_id`` should be unique
-    /// for each message and each iteration of a message. If a message is updated,
-    /// use a new `block_id`.
+    /// Maximum length for this field is 255 characters. `block_id` should be unique
+    /// for each message iteration.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub block_id: Option<String>,
 }
 
 #[slaq_macros::block(kind = "markdown")]
-#[derive(Debug, Clone)]
-/// Displays formatted markdown.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct Markdown {
     /// The standard markdown-formatted text. Limit 12,000 characters max.
     pub text: String,
+    /// Optional block identifier.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub block_id: Option<String>,
+}
+
+#[slaq_macros::block(kind = "header")]
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct Header {
+    /// The text for the block, in the form of a plain-text object. 150 chars max per Slack docs.
+    pub text: PlainText,
+    /// Optional block identifier.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub block_id: Option<String>,
+}
+
+#[slaq_macros::block(kind = "image", validate = Self::validate)]
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct Image {
+    /// A tooltip for the image. Required for accessibility.
+    pub alt_text: String,
+    /// The URL for a publicly hosted image. One of `image_url` or `slack_file` must be provided.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub image_url: Option<String>,
+    /// A Slack image file reference. Optional and mutually exclusive with `image_url`.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub slack_file: Option<SlackFileRef>,
+    /// Optional title for the image (plain_text only).
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub title: Option<PlainText>,
+    /// Optional block identifier.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub block_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct SlackFileRef {
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub id: Option<String>,
+}
+
+impl SlackFileRef {
+    #[must_use]
+    pub fn with_url(url: impl Into<String>) -> Self {
+        Self {
+            url: Some(url.into()),
+            id: None,
+        }
+    }
+
+    #[must_use]
+    pub fn with_id(id: impl Into<String>) -> Self {
+        Self {
+            url: None,
+            id: Some(id.into()),
+        }
+    }
+}
+
+#[slaq_macros::block(kind = "file")]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct File {
+    /// The external unique ID for this file.
+    pub external_id: String,
+    /// The source for the file (currently always `remote`).
+    pub source: FileSource,
+    /// Optional block identifier.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub block_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum FileSource {
+    Remote,
+}
+
+#[slaq_macros::block(kind = "context", validate = Self::validate)]
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct Context {
+    /// An array of text objects and/or images, up to 10 entries.
+    pub elements: Vec<ContextElement>,
+    /// Optional block identifier.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub block_id: Option<String>,
+}
+
+#[slaq_macros::block(kind = "context_actions", validate = Self::validate)]
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct ContextActions {
+    /// Contextual action elements (feedback buttons or icon buttons). Max 5.
+    pub elements: Vec<ContextActionElement>,
+    /// Optional block identifier.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub block_id: Option<String>,
+}
+
+#[slaq_macros::block(kind = "actions", validate = Self::validate)]
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct Actions {
+    /// Interactive elements such as buttons or select menus. Max 25.
+    pub elements: Vec<BlockElement>,
+    /// Optional block identifier.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub block_id: Option<String>,
+}
+
+#[slaq_macros::block(kind = "section", validate = Self::validate)]
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct Section {
+    /// Primary text content for the section (mrkdwn by default, plain_text allowed).
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub text: Option<TextObject>,
+    /// Compact field list; required when `text` is absent. Max 10 items.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub fields: Option<Vec<TextObject>>,
+    /// Optional accessory element such as a button, select, or image.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub accessory: Option<BlockElement>,
+    /// Controls whether the section auto-expands (used by AI surfaces).
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub expand: Option<bool>,
+    /// Optional block identifier.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub block_id: Option<String>,
+}
+
+impl Image {
+    fn validate(&self) -> Result<(), BuildError> {
+        match (self.image_url.as_ref(), self.slack_file.as_ref()) {
+            (None, None) => {
+                return Err(BuildError::message(
+                    "image block requires either image_url or slack_file",
+                ));
+            }
+            (Some(_), Some(_)) => {
+                return Err(BuildError::message(
+                    "image block must choose either image_url or slack_file, not both",
+                ));
+            }
+            (_, Some(file_ref)) => {
+                if file_ref.url.is_none() && file_ref.id.is_none() {
+                    return Err(BuildError::message(
+                        "slack_file reference requires either url or id",
+                    ));
+                }
+            }
+            _ => {}
+        }
+
+        Ok(())
+    }
+}
+
+impl Context {
+    fn validate(&self) -> Result<(), BuildError> {
+        if self.elements.is_empty() {
+            return Err(BuildError::message(
+                "context block requires at least one element",
+            ));
+        }
+        if self.elements.len() > 10 {
+            return Err(BuildError::message(
+                "context block supports at most 10 elements",
+            ));
+        }
+        Ok(())
+    }
+}
+
+impl ContextActions {
+    fn validate(&self) -> Result<(), BuildError> {
+        if self.elements.is_empty() {
+            return Err(BuildError::message(
+                "context_actions block requires at least one element",
+            ));
+        }
+        if self.elements.len() > 5 {
+            return Err(BuildError::message(
+                "context_actions block supports at most 5 elements",
+            ));
+        }
+        Ok(())
+    }
+}
+
+impl Actions {
+    fn validate(&self) -> Result<(), BuildError> {
+        if self.elements.is_empty() {
+            return Err(BuildError::message(
+                "actions block requires at least one element",
+            ));
+        }
+        if self.elements.len() > 25 {
+            return Err(BuildError::message(
+                "actions block supports at most 25 elements",
+            ));
+        }
+        Ok(())
+    }
+}
+
+impl Section {
+    fn validate(&self) -> Result<(), BuildError> {
+        let has_text = self.text.is_some();
+        let field_count = self.fields.as_ref().map(|f| f.len()).unwrap_or(0);
+
+        if !has_text && field_count == 0 {
+            return Err(BuildError::message(
+                "section block requires text or at least one field",
+            ));
+        }
+        if let Some(fields) = &self.fields {
+            if fields.is_empty() {
+                return Err(BuildError::message(
+                    "section block fields must contain at least one entry",
+                ));
+            }
+            if fields.len() > 10 {
+                return Err(BuildError::message(
+                    "section block supports at most 10 fields",
+                ));
+            }
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -39,16 +316,134 @@ mod tests {
 
     #[test]
     fn divider_serializes_minimal() {
-        let block = Divider::new().build();
+        let block = Divider::new().build().expect("divider build");
         let json = serde_json::to_string(&block).unwrap();
         assert_eq!(json, r#"{"type":"divider"}"#);
     }
 
     #[test]
     fn markdown_serializes_with_text_and_block_id() {
-        let block = Markdown::new("hello").build();
+        let block = Markdown::new("hello")
+            .block_id("block-1")
+            .build()
+            .expect("markdown build");
         let json = serde_json::to_string(&block).unwrap();
         assert!(json.contains("\"type\":\"markdown\""));
         assert!(json.contains("\"text\":\"hello\""));
+        assert!(json.contains("\"block_id\":\"block-1\""));
+    }
+
+    #[test]
+    fn header_serializes_plain_text() {
+        let block = Header::new(PlainText::new("Release"))
+            .build()
+            .expect("header build");
+        let json = serde_json::to_string(&block).unwrap();
+        assert!(json.contains("\"type\":\"header\""));
+        assert!(json.contains("\"text\":{\"type\":\"plain_text\""));
+    }
+
+    #[test]
+    fn image_serializes_with_url() {
+        let block = Image::new("Preview")
+            .image_url("https://example.com/cat.png")
+            .title(PlainText::new("cat"))
+            .build()
+            .expect("image build");
+        let json = serde_json::to_string(&block).unwrap();
+        assert!(json.contains("\"type\":\"image\""));
+        assert!(json.contains("\"image_url\":\"https://example.com/cat.png\""));
+    }
+
+    #[test]
+    fn file_serializes_remote_source() {
+        let block = File::new("ABCD1".to_string(), FileSource::Remote)
+            .build()
+            .expect("file build");
+        let json = serde_json::to_string(&block).unwrap();
+        assert!(json.contains("\"type\":\"file\""));
+        assert!(json.contains("\"external_id\":\"ABCD1\""));
+        assert!(json.contains("\"source\":\"remote\""));
+    }
+
+    #[test]
+    fn context_serializes_text_and_image() {
+        let block = Context::new(vec![
+            ContextElement::mrkdwn("*Location*: Dogpatch"),
+            ContextElement::image(
+                "https://image.freepik.com/free-photo/red-drawing-pin_1156-445.jpg",
+                "pin",
+            ),
+        ])
+        .build()
+        .expect("context build");
+
+        let json = serde_json::to_string(&block).unwrap();
+        assert!(json.contains("\"type\":\"context\""));
+        assert!(json.contains("Dogpatch"));
+        assert!(json.contains("red-drawing-pin"));
+    }
+
+    #[test]
+    fn context_actions_serializes_feedback() {
+        let positive = FeedbackButton::new("👍", "positive");
+        let negative = FeedbackButton::new("👎", "negative");
+        let block = ContextActions::new(vec![ContextActionElement::feedback(
+            "feedback_1",
+            positive,
+            negative,
+        )])
+        .build()
+        .expect("context actions build");
+
+        let json = serde_json::to_string(&block).unwrap();
+        assert!(json.contains("\"type\":\"context_actions\""));
+        assert!(json.contains("feedback_1"));
+    }
+
+    #[test]
+    fn actions_serializes_button() {
+        let button = ButtonElement::new(PlainText::new("Click"), "btn_1");
+        let block = Actions::new(vec![BlockElement::from(button)])
+            .build()
+            .expect("actions build");
+
+        let json = serde_json::to_string(&block).unwrap();
+        assert!(json.contains("\"type\":\"actions\""));
+        assert!(json.contains("btn_1"));
+    }
+
+    #[test]
+    fn actions_empty_fails() {
+        let err = Actions::new(Vec::new())
+            .build()
+            .expect_err("expected error");
+        assert!(err.to_string().contains("requires at least one element"));
+    }
+
+    #[test]
+    fn section_serializes_with_text_and_accessory() {
+        let section = Section::new()
+            .text("*Deployment finished*")
+            .accessory(BlockElement::from(ButtonElement::new(
+                PlainText::new("Details"),
+                "details_btn",
+            )))
+            .build()
+            .expect("section build");
+
+        let json = serde_json::to_string(&section).unwrap();
+        assert!(json.contains("\"type\":\"section\""));
+        assert!(json.contains("Deployment finished"));
+        assert!(json.contains("details_btn"));
+    }
+
+    #[test]
+    fn section_requires_content() {
+        let err = Section::new().build().expect_err("expected section error");
+        assert!(
+            err.to_string()
+                .contains("section block requires text or at least one field")
+        );
     }
 }

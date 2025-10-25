@@ -12,33 +12,33 @@ with any HTTP client you prefer.
 Features
 --------
 
-- transport-reqwest (default): enables the built-in blocking client using reqwest.
-- Build-only mode: disable default features to use just the typed builders without
-pulling in reqwest.
+- Core builders (default): typed Slack Web API payload builders without any HTTP client.
+- `transport-reqwest`: enables the built-in blocking client using reqwest.
 
 Install
 -------
 
-Default (with transport):
+Core builders only (default, bring your own HTTP client):
 
 ```
 [dependencies]
 slaq = "0.0.3"
 ```
 
-Build-only (no reqwest; you provide HTTP):
+With the built-in reqwest transport:
 
 ```
 [dependencies]
-slaq = { version = "0.0.3", default-features = false }
+slaq = { version = "0.0.3", features = ["transport-reqwest"] }
 ```
 
 Quick Start
 -----------
 
-With the built-in client (default feature):
+With the built-in client (enable the `transport-reqwest` feature):
 
 ```rust
+// Cargo.toml: slaq = { version = "0.0.3", features = ["transport-reqwest"] }
 use slaq::{Client, DEFAULT_BASE_URL};
 use slaq::api::chat::post_message::PostMessage;
 
@@ -94,15 +94,24 @@ The following Slack Web API chat.* methods are currently available as typed payl
 Blocks
 ------
 
-This crate includes a minimal BlockKit-like builder with two blocks: divider and markdown.
+This crate includes a growing BlockKit-like builder with several blocks today: divider, markdown, header, image, file, context, context actions, and actions.
 
 ```rust
-use slaq::blocks;
+use slaq::blocks::{self, BlockElement, ButtonElement, ButtonStyle, PlainText};
 use slaq::api::chat::post_message::PostMessage;
 
 let blocks = vec![
-    blocks::Markdown::new("Hello").build(),
-    blocks::Divider::new().build(),
+    blocks::Header::new(PlainText::new("Greetings")).build()?,
+    blocks::Markdown::new("Hello").build()?,
+    blocks::Image::new("Kittens!")
+        .image_url("https://placekitten.com/200/300")
+        .build()?,
+    blocks::Actions::new(vec![BlockElement::from(
+        ButtonElement::new(PlainText::new("Acknowledge"), "ack")
+            .style(ButtonStyle::Primary),
+    )])
+    .build()?,
+    blocks::Divider::new().build()?,
 ];
 
 let payload = PostMessage::new(channel)
@@ -127,7 +136,7 @@ It expects the following environment variables:
 Build-only usage (no reqwest; you send it):
 
 ```rust
-// Cargo.toml: slaq = { version = "0.0.3", default-features = false }
+// Cargo.toml: slaq = "0.0.3"
 
 use slaq::api::chat::post_message::PostMessage;
 use slaq::client::SlackRequest; // request wrapper
@@ -164,6 +173,45 @@ fn send_with_any_http(
     Ok(())
 }
 ```
+
+Blocks-only webhook payload (no Slack token):
+
+```rust
+// Cargo.toml:
+// slaq = "0.0.3"
+// serde_json = "1.0"
+// reqwest = { version = "0.12", features = ["blocking", "json", "rustls-tls"] }
+
+use slaq::blocks;
+use serde_json::json;
+
+fn send_webhook() -> Result<(), Box<dyn std::error::Error>> {
+    let webhook_url = std::env::var("SLACK_WEBHOOK_URL")?;
+
+    let blocks = vec![
+        blocks::Markdown::new("*Release finished*").build()?,
+        blocks::Divider::new().build()?,
+        blocks::Markdown::new("All services are healthy.").build()?,
+    ];
+
+    let payload = json!({
+        "text": "Release finished",
+        "blocks": blocks,
+    });
+
+    reqwest::blocking::Client::new()
+        .post(&webhook_url)
+        .json(&payload)
+        .send()?
+        .error_for_status()?;
+
+    Ok(())
+}
+```
+
+This example only uses the block builders to compose the JSON payload that Slack incoming
+webhooks expect. The `text` field provides a plain-text fallback for clients that
+do not render blocks.
 
 Notes
 -----

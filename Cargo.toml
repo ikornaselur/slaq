@@ -15,7 +15,7 @@ slaq_macros = { version = "0.0.2", path = "slaq-macros" }
 
 
 [features]
-default = ["transport-reqwest"]
+default = []
 transport-reqwest = ["dep:reqwest"]
 
 [dependencies.reqwest]
