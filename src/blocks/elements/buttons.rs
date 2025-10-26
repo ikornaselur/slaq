@@ -72,3 +72,26 @@ impl From<ButtonElement> for BlockElement {
     }
 }
 
+/// Workflow button element.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct WorkflowButtonElement {
+    #[serde(rename = "type")]
+    kind: WorkflowButtonKind,
+    pub text: PlainText,
+    pub action_id: String,
+}
+
+impl WorkflowButtonElement {
+    #[must_use]
+    pub fn new(text: PlainText, action_id: impl Into<String>) -> Self {
+        Self { kind: WorkflowButtonKind::WorkflowButton, text, action_id: action_id.into() }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+enum WorkflowButtonKind { WorkflowButton }
+
+impl From<WorkflowButtonElement> for BlockElement {
+    fn from(value: WorkflowButtonElement) -> Self { BlockElement::from_struct(&value) }
+}

@@ -145,18 +145,326 @@ pub(crate) enum SelectMenuKind {
     StaticSelect,
     #[serde(rename = "multi_static_select")]
     MultiStaticSelect,
+    #[serde(rename = "external_select")]
+    ExternalSelect,
+    #[serde(rename = "multi_external_select")]
+    MultiExternalSelect,
     #[serde(rename = "users_select")]
     UsersSelect,
+    #[serde(rename = "multi_users_select")]
+    MultiUsersSelect,
     #[serde(rename = "conversations_select")]
     ConversationsSelect,
+    #[serde(rename = "multi_conversations_select")]
+    MultiConversationsSelect,
     #[serde(rename = "channels_select")]
     ChannelsSelect,
+    #[serde(rename = "multi_channels_select")]
+    MultiChannelsSelect,
     #[serde(rename = "plain_text_input")]
     PlainTextInput,
     #[serde(rename = "datepicker")]
     DatePicker,
     #[serde(rename = "timepicker")]
     TimePicker,
+    #[serde(rename = "email_text_input")]
+    EmailTextInput,
+    #[serde(rename = "url_text_input")]
+    UrlTextInput,
+    #[serde(rename = "number_input")]
+    NumberInput,
+    #[serde(rename = "datetimepicker")]
+    DateTimePicker,
+    #[serde(rename = "rich_text_input")]
+    RichTextInput,
+}
+
+/// External data source select element.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct ExternalSelectElement {
+    #[serde(rename = "type")]
+    kind: SelectMenuKind,
+    pub action_id: String,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub placeholder: Option<PlainText>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub min_query_length: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub initial_option: Option<SelectOption>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub confirm: Option<ConfirmationDialog>,
+}
+
+impl ExternalSelectElement {
+    #[must_use]
+    pub fn new(action_id: impl Into<String>) -> Self {
+        Self {
+            kind: SelectMenuKind::ExternalSelect,
+            action_id: action_id.into(),
+            placeholder: None,
+            min_query_length: None,
+            initial_option: None,
+            confirm: None,
+        }
+    }
+
+    #[must_use]
+    pub fn placeholder(mut self, text: PlainText) -> Self {
+        self.placeholder = Some(text);
+        self
+    }
+
+    #[must_use]
+    pub fn min_query_length(mut self, value: u32) -> Self {
+        self.min_query_length = Some(value);
+        self
+    }
+
+    #[must_use]
+    pub fn initial_option(mut self, option: SelectOption) -> Self {
+        self.initial_option = Some(option);
+        self
+    }
+
+    #[must_use]
+    pub fn confirm(mut self, dialog: ConfirmationDialog) -> Self {
+        self.confirm = Some(dialog);
+        self
+    }
+}
+
+/// Multi external data source select element.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct MultiExternalSelectElement {
+    #[serde(rename = "type")]
+    kind: SelectMenuKind,
+    pub action_id: String,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub placeholder: Option<PlainText>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub min_query_length: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub initial_options: Option<Vec<SelectOption>>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub max_selected_items: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub confirm: Option<ConfirmationDialog>,
+}
+
+impl MultiExternalSelectElement {
+    #[must_use]
+    pub fn new(action_id: impl Into<String>) -> Self {
+        Self {
+            kind: SelectMenuKind::MultiExternalSelect,
+            action_id: action_id.into(),
+            placeholder: None,
+            min_query_length: None,
+            initial_options: None,
+            max_selected_items: None,
+            confirm: None,
+        }
+    }
+
+    #[must_use]
+    pub fn placeholder(mut self, text: PlainText) -> Self {
+        self.placeholder = Some(text);
+        self
+    }
+
+    #[must_use]
+    pub fn min_query_length(mut self, value: u32) -> Self {
+        self.min_query_length = Some(value);
+        self
+    }
+
+    #[must_use]
+    pub fn initial_options(mut self, options: impl Into<Vec<SelectOption>>) -> Self {
+        self.initial_options = Some(options.into());
+        self
+    }
+
+    #[must_use]
+    pub fn max_selected_items(mut self, value: u32) -> Self {
+        self.max_selected_items = Some(value);
+        self
+    }
+
+    #[must_use]
+    pub fn confirm(mut self, dialog: ConfirmationDialog) -> Self {
+        self.confirm = Some(dialog);
+        self
+    }
+}
+
+/// Multi users select element.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct MultiUsersSelectElement {
+    #[serde(rename = "type")]
+    kind: SelectMenuKind,
+    pub action_id: String,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub placeholder: Option<PlainText>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub initial_users: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub max_selected_items: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub confirm: Option<ConfirmationDialog>,
+}
+
+impl MultiUsersSelectElement {
+    #[must_use]
+    pub fn new(action_id: impl Into<String>) -> Self {
+        Self {
+            kind: SelectMenuKind::MultiUsersSelect,
+            action_id: action_id.into(),
+            placeholder: None,
+            initial_users: None,
+            max_selected_items: None,
+            confirm: None,
+        }
+    }
+
+    #[must_use]
+    pub fn placeholder(mut self, text: PlainText) -> Self {
+        self.placeholder = Some(text);
+        self
+    }
+
+    #[must_use]
+    pub fn initial_users(mut self, users: impl Into<Vec<String>>) -> Self {
+        self.initial_users = Some(users.into());
+        self
+    }
+
+    #[must_use]
+    pub fn max_selected_items(mut self, value: u32) -> Self {
+        self.max_selected_items = Some(value);
+        self
+    }
+
+    #[must_use]
+    pub fn confirm(mut self, dialog: ConfirmationDialog) -> Self {
+        self.confirm = Some(dialog);
+        self
+    }
+}
+
+/// Multi conversations select element.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct MultiConversationsSelectElement {
+    #[serde(rename = "type")]
+    kind: SelectMenuKind,
+    pub action_id: String,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub placeholder: Option<PlainText>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub initial_conversations: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub max_selected_items: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub filter: Option<ConversationsFilter>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub confirm: Option<ConfirmationDialog>,
+}
+
+impl MultiConversationsSelectElement {
+    #[must_use]
+    pub fn new(action_id: impl Into<String>) -> Self {
+        Self {
+            kind: SelectMenuKind::MultiConversationsSelect,
+            action_id: action_id.into(),
+            placeholder: None,
+            initial_conversations: None,
+            max_selected_items: None,
+            filter: None,
+            confirm: None,
+        }
+    }
+
+    #[must_use]
+    pub fn placeholder(mut self, text: PlainText) -> Self {
+        self.placeholder = Some(text);
+        self
+    }
+
+    #[must_use]
+    pub fn initial_conversations(mut self, ids: impl Into<Vec<String>>) -> Self {
+        self.initial_conversations = Some(ids.into());
+        self
+    }
+
+    #[must_use]
+    pub fn max_selected_items(mut self, value: u32) -> Self {
+        self.max_selected_items = Some(value);
+        self
+    }
+
+    #[must_use]
+    pub fn filter(mut self, filter: ConversationsFilter) -> Self {
+        self.filter = Some(filter);
+        self
+    }
+
+    #[must_use]
+    pub fn confirm(mut self, dialog: ConfirmationDialog) -> Self {
+        self.confirm = Some(dialog);
+        self
+    }
+}
+
+/// Multi channels select element.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct MultiChannelsSelectElement {
+    #[serde(rename = "type")]
+    kind: SelectMenuKind,
+    pub action_id: String,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub placeholder: Option<PlainText>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub initial_channels: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub max_selected_items: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub confirm: Option<ConfirmationDialog>,
+}
+
+impl MultiChannelsSelectElement {
+    #[must_use]
+    pub fn new(action_id: impl Into<String>) -> Self {
+        Self {
+            kind: SelectMenuKind::MultiChannelsSelect,
+            action_id: action_id.into(),
+            placeholder: None,
+            initial_channels: None,
+            max_selected_items: None,
+            confirm: None,
+        }
+    }
+
+    #[must_use]
+    pub fn placeholder(mut self, text: PlainText) -> Self {
+        self.placeholder = Some(text);
+        self
+    }
+
+    #[must_use]
+    pub fn initial_channels(mut self, ids: impl Into<Vec<String>>) -> Self {
+        self.initial_channels = Some(ids.into());
+        self
+    }
+
+    #[must_use]
+    pub fn max_selected_items(mut self, value: u32) -> Self {
+        self.max_selected_items = Some(value);
+        self
+    }
+
+    #[must_use]
+    pub fn confirm(mut self, dialog: ConfirmationDialog) -> Self {
+        self.confirm = Some(dialog);
+        self
+    }
 }
 
 /// Filter for conversations select element.
@@ -402,6 +710,36 @@ impl From<ConversationsSelectElement> for BlockElement {
 
 impl From<ChannelsSelectElement> for BlockElement {
     fn from(value: ChannelsSelectElement) -> Self {
+        BlockElement::from_struct(&value)
+    }
+}
+
+impl From<ExternalSelectElement> for BlockElement {
+    fn from(value: ExternalSelectElement) -> Self {
+        BlockElement::from_struct(&value)
+    }
+}
+
+impl From<MultiExternalSelectElement> for BlockElement {
+    fn from(value: MultiExternalSelectElement) -> Self {
+        BlockElement::from_struct(&value)
+    }
+}
+
+impl From<MultiUsersSelectElement> for BlockElement {
+    fn from(value: MultiUsersSelectElement) -> Self {
+        BlockElement::from_struct(&value)
+    }
+}
+
+impl From<MultiConversationsSelectElement> for BlockElement {
+    fn from(value: MultiConversationsSelectElement) -> Self {
+        BlockElement::from_struct(&value)
+    }
+}
+
+impl From<MultiChannelsSelectElement> for BlockElement {
+    fn from(value: MultiChannelsSelectElement) -> Self {
         BlockElement::from_struct(&value)
     }
 }

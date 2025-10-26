@@ -7,13 +7,35 @@ pub mod inputs;
 pub mod choices;
 
 // Re-exports for crate consumers
-pub use buttons::ButtonElement;
+pub use buttons::{ButtonElement, WorkflowButtonElement};
 pub use choices::{CheckboxesElement, OverflowElement, RadioButtonsElement};
 pub use common::{BlockElement, ButtonStyle, ConfirmationDialog, DispatchActionConfig, DispatchActionTrigger, OptionGroup, SelectOption};
 pub use context::{ContextElement, ContextImage, ImageElement};
 pub use context_actions::{ContextActionElement, FeedbackButton, FeedbackButtons, IconButton};
-pub use inputs::{DatePickerElement, PlainTextInputElement, TimePickerElement};
-pub use selects::{ChannelsSelectElement, ConversationsFilter, ConversationsFilterKind, ConversationsSelectElement, MultiStaticSelectElement, StaticSelectElement, UsersSelectElement};
+pub use inputs::{
+    DatePickerElement,
+    DateTimePickerElement,
+    EmailInputElement,
+    NumberInputElement,
+    PlainTextInputElement,
+    RichTextInputElement,
+    TimePickerElement,
+    UrlInputElement,
+};
+pub use selects::{
+    ChannelsSelectElement,
+    ConversationsFilter,
+    ConversationsFilterKind,
+    ConversationsSelectElement,
+    ExternalSelectElement,
+    MultiChannelsSelectElement,
+    MultiConversationsSelectElement,
+    MultiExternalSelectElement,
+    MultiStaticSelectElement,
+    MultiUsersSelectElement,
+    StaticSelectElement,
+    UsersSelectElement,
+};
 
 #[cfg(test)]
 mod tests {
@@ -79,6 +101,87 @@ mod tests {
         let json = serde_json::to_string(&t).unwrap();
         assert!(json.contains("\"type\":\"timepicker\""));
         assert!(json.contains("13:37"));
+    }
+
+    #[test]
+    fn external_select_serializes() {
+        let ex = ExternalSelectElement::new("ex").min_query_length(2);
+        let json = serde_json::to_string(&ex).unwrap();
+        assert!(json.contains("\"type\":\"external_select\""));
+        assert!(json.contains("\"min_query_length\":2"));
+    }
+
+    #[test]
+    fn multi_external_select_serializes() {
+        let ex = MultiExternalSelectElement::new("mex").max_selected_items(3);
+        let json = serde_json::to_string(&ex).unwrap();
+        assert!(json.contains("\"type\":\"multi_external_select\""));
+        assert!(json.contains("\"max_selected_items\":3"));
+    }
+
+    #[test]
+    fn multi_users_select_serializes() {
+        let mu = MultiUsersSelectElement::new("mus").initial_users(vec!["U1".into(), "U2".into()]);
+        let json = serde_json::to_string(&mu).unwrap();
+        assert!(json.contains("\"type\":\"multi_users_select\""));
+        assert!(json.contains("U1"));
+    }
+
+    #[test]
+    fn multi_conversations_select_serializes() {
+        let mc = MultiConversationsSelectElement::new("mcs")
+            .initial_conversations(vec!["C1".into()])
+            .filter(ConversationsFilter::new().exclude_bot_users(true));
+        let json = serde_json::to_string(&mc).unwrap();
+        assert!(json.contains("\"type\":\"multi_conversations_select\""));
+        assert!(json.contains("\"exclude_bot_users\":true"));
+    }
+
+    #[test]
+    fn multi_channels_select_serializes() {
+        let mc = MultiChannelsSelectElement::new("mch").initial_channels(vec!["C1".into(), "C2".into()]);
+        let json = serde_json::to_string(&mc).unwrap();
+        assert!(json.contains("\"type\":\"multi_channels_select\""));
+        assert!(json.contains("C2"));
+    }
+
+    #[test]
+    fn email_input_serializes() {
+        let e = EmailInputElement::new("email").initial_value("foo@example.com");
+        let json = serde_json::to_string(&e).unwrap();
+        assert!(json.contains("\"type\":\"email_text_input\""));
+        assert!(json.contains("foo@example.com"));
+    }
+
+    #[test]
+    fn url_input_serializes() {
+        let u = UrlInputElement::new("url").initial_value("https://example.com");
+        let json = serde_json::to_string(&u).unwrap();
+        assert!(json.contains("\"type\":\"url_text_input\""));
+        assert!(json.contains("https://example.com"));
+    }
+
+    #[test]
+    fn number_input_serializes() {
+        let n = NumberInputElement::new("num").min_value(0).max_value(10).decimal_allowed(true);
+        let json = serde_json::to_string(&n).unwrap();
+        assert!(json.contains("\"type\":\"number_input\""));
+        assert!(json.contains("\"is_decimal_allowed\":true"));
+    }
+
+    #[test]
+    fn datetimepicker_serializes() {
+        let d = DateTimePickerElement::new("dt").initial_date_time(1_700_000_000);
+        let json = serde_json::to_string(&d).unwrap();
+        assert!(json.contains("\"type\":\"datetimepicker\""));
+        assert!(json.contains("1700000000"));
+    }
+
+    #[test]
+    fn rich_text_input_serializes() {
+        let r = RichTextInputElement::new("rti");
+        let json = serde_json::to_string(&r).unwrap();
+        assert!(json.contains("\"type\":\"rich_text_input\""));
     }
 
     #[test]
@@ -157,4 +260,3 @@ mod tests {
         assert!(json.contains("C123"));
     }
 }
-
