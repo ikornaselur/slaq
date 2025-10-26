@@ -37,7 +37,7 @@ fn main() -> Result<(), BuildError> {
         ),
     ]?;
 
-    for block in blocks.into_iter() {
+    for block in blocks {
         println!(
             "{}",
             serde_json::to_string_pretty(&block.to_value()).unwrap()

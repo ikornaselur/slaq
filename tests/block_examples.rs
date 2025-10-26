@@ -5,9 +5,9 @@ use slaq::blocks::{
     RichTextElement, RichTextNode, Section, StaticSelectElement, Table, TableCell, Video,
 };
 
-fn assert_json_eq(block: Block, expected: Value) {
+fn assert_json_eq(block: &Block, expected: &Value) {
     let actual = block.to_value();
-    assert_eq!(actual, expected);
+    assert_eq!(&actual, expected);
 }
 
 #[test]
@@ -25,7 +25,7 @@ fn section_doc_example() {
         }
     });
 
-    assert_json_eq(block, expected);
+    assert_json_eq(&block, &expected);
 }
 
 #[test]
@@ -73,7 +73,7 @@ fn actions_doc_example() {
         ]
     });
 
-    assert_json_eq(block, expected);
+    assert_json_eq(&block, &expected);
 }
 
 #[test]
@@ -99,7 +99,7 @@ fn video_doc_example() {
         "thumbnail_url": "https://i.ytimg.com/vi/8876OZV_Yy0/hqdefault.jpg"
     });
 
-    assert_json_eq(block, expected);
+    assert_json_eq(&block, &expected);
 }
 
 #[test]
@@ -154,5 +154,5 @@ fn table_doc_example() {
         ]
     });
 
-    assert_json_eq(block, expected);
+    assert_json_eq(&block, &expected);
 }

@@ -1,6 +1,6 @@
 //! Public macros for ergonomic block construction.
 
-/// Creates a plain_text object.
+/// Creates a `plain_text` object.
 #[macro_export]
 macro_rules! plain {
     ($text:expr) => {
@@ -18,7 +18,7 @@ macro_rules! mrkdwn {
     }};
 }
 
-/// Builds a header block from a string (treated as plain_text). Optional `block_id`.
+/// Builds a header block from a string (treated as `plain_text`). Optional `block_id`.
 #[macro_export]
 macro_rules! header {
     ($text:expr $(, block_id = $block_id:expr)? $(,)?) => {{
@@ -236,7 +236,7 @@ macro_rules! file {
 
 /// Builds a context block from an inline list.
 /// Elements supported: `mrkdwn("...")`, `plain("...")`, `image(url, alt)`, or string literals.
-/// Default for string/text(...) is plain_text (for consistency with header!).
+/// Default for string/text(...) is `plain_text` (for consistency with header!).
 #[macro_export]
 macro_rules! context {
     ( elements = [ $($rest:tt)* ] $(, block_id = $block_id:expr)? $(,)? ) => {{

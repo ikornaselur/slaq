@@ -80,8 +80,8 @@ impl RichTextElement {
     #[must_use]
     pub fn border(mut self, value: u32) -> Self {
         match &mut self {
-            RichTextElement::RichTextList { border, .. } => *border = Some(value),
-            RichTextElement::RichTextPreformatted { border, .. } => *border = Some(value),
+            RichTextElement::RichTextList { border, .. }
+            | RichTextElement::RichTextPreformatted { border, .. } => *border = Some(value),
             _ => {}
         }
         self
@@ -252,3 +252,4 @@ mod tests {
         assert!(json.contains("world"));
     }
 }
+ 

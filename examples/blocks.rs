@@ -48,7 +48,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ];
     for block in blocks {
         let json = serde_json::to_string_pretty(&block.to_value())?;
-        println!("{}", json);
+        println!("{json}");
     }
 
     Ok(())
