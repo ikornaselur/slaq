@@ -9,9 +9,7 @@ use serde_with::skip_serializing_none;
 #[derive(Debug, Clone, Serialize, Default)]
 #[slaq_macros::slack_api(
     path="/chat.update",
-    chat_method=update,
     response=UpdateResponse,
-    call_alias="UpdateCall"
 )]
 pub struct Update {
     /// Channel containing the message to be updated. For direct messages, ensure that this value is a DM ID (starts with `D`) instead of a User ID (starts with either `U` or `W`).

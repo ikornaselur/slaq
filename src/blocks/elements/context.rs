@@ -56,4 +56,3 @@ enum ContextImageKind {
 
 /// Alias for the generic image element usable as a section accessory or elsewhere.
 pub type ImageElement = ContextImage;
-

@@ -9,9 +9,7 @@ use serde_with::skip_serializing_none;
 #[derive(Debug, Clone, Serialize, Default)]
 #[slaq_macros::slack_api(
     path="/chat.delete",
-    chat_method=delete,
     response=DeleteResponse,
-    call_alias="DeleteCall"
 )]
 pub struct Delete {
     /// Channel containing the message to be deleted.

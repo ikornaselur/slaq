@@ -1,7 +1,7 @@
 use serde::Serialize;
 
-use crate::blocks::elements::BlockElement;
 use crate::blocks::BuildError;
+use crate::blocks::elements::BlockElement;
 
 /// Actions block.
 ///
@@ -14,8 +14,8 @@ use crate::blocks::BuildError;
 ///   `options` or `option_groups` must be provided.
 /// - If provided, `max_selected_items` on `multi_static_select` must be > 0.
 ///
-/// See: https://docs.slack.dev/reference/block-kit/blocks/actions-block
-#[slaq_macros::block(kind = "actions", validate = Self::validate)]
+/// See: <https://docs.slack.dev/reference/block-kit/blocks/actions-block>
+#[slaq_macros::block(validate = Self::validate)]
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Actions {
@@ -49,12 +49,14 @@ impl Actions {
                 "multi_static_select" => {
                     validate_static_select(&el.0, true)?;
                     // Optional: if max_selected_items present, ensure > 0
-                    if let Some(msi) = el.0.get("max_selected_items").and_then(|v| v.as_u64()) {
-                        if msi == 0 {
-                            return Err(BuildError::message(
-                                "multi_static_select max_selected_items must be greater than 0",
-                            ));
-                        }
+                    if let Some(msi) =
+                        el.0.get("max_selected_items")
+                            .and_then(serde_json::Value::as_u64)
+                        && msi == 0
+                    {
+                        return Err(BuildError::message(
+                            "multi_static_select max_selected_items must be greater than 0",
+                        ));
                     }
                 }
                 _ => {}
@@ -67,14 +69,12 @@ impl Actions {
 fn validate_static_select(value: &serde_json::Value, _is_multi: bool) -> Result<(), BuildError> {
     let has_options = value
         .get("options")
-        .and_then(|v| v.as_array())
-        .map(|a| !a.is_empty())
-        .unwrap_or(false);
+        .and_then(serde_json::Value::as_array)
+        .is_some_and(|a| !a.is_empty());
     let has_groups = value
         .get("option_groups")
-        .and_then(|v| v.as_array())
-        .map(|a| !a.is_empty())
-        .unwrap_or(false);
+        .and_then(serde_json::Value::as_array)
+        .is_some_and(|a| !a.is_empty());
     if has_options && has_groups {
         return Err(BuildError::message(
             "static_select cannot specify both options and option_groups",
@@ -91,8 +91,8 @@ fn validate_static_select(value: &serde_json::Value, _is_multi: bool) -> Result<
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::blocks::{elements::StaticSelectElement, PlainText};
     use crate::blocks::elements::OptionGroup;
+    use crate::blocks::{PlainText, elements::StaticSelectElement};
 
     #[test]
     fn static_select_requires_options_or_groups() {
@@ -109,7 +109,10 @@ mod tests {
     #[test]
     fn static_select_cannot_have_both() {
         let sel = StaticSelectElement::new("s")
-            .options(vec![crate::blocks::SelectOption::new(PlainText::new("A"), "a")])
+            .options(vec![crate::blocks::SelectOption::new(
+                PlainText::new("A"),
+                "a",
+            )])
             .option_groups(vec![OptionGroup::new(
                 PlainText::new("G"),
                 vec![crate::blocks::SelectOption::new(PlainText::new("A"), "a")],
@@ -120,6 +123,24 @@ mod tests {
         assert_eq!(
             err,
             BuildError::message("static_select cannot specify both options and option_groups")
+        );
+    }
+
+    #[test]
+    fn actions_over_element_limit_rejected() {
+        let button = crate::blocks::elements::ButtonElement::new(PlainText::new("Go"), "go");
+        let mut items: Vec<BlockElement> = Vec::new();
+        for _ in 0..=crate::blocks::MAX_ACTIONS_ELEMENTS {
+            // one over
+            items.push(BlockElement::from(button.clone()));
+        }
+        let err = Actions::new(items).build().expect_err("expected too many");
+        assert_eq!(
+            err,
+            BuildError::message(format!(
+                "actions block supports at most {} elements",
+                crate::blocks::MAX_ACTIONS_ELEMENTS
+            ))
         );
     }
 }

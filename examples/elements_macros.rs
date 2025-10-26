@@ -1,4 +1,7 @@
-use slaq::{blocks, button, datepicker, external_select, mrkdwn, option, options, overflow, section, select, timepicker};
+use slaq::{
+    blocks, button, datepicker, external_select, mrkdwn, option, options, overflow, section,
+    select, timepicker,
+};
 
 fn main() -> Result<(), slaq::blocks::BuildError> {
     let blocks = blocks![
@@ -13,11 +16,8 @@ fn main() -> Result<(), slaq::blocks::BuildError> {
         ),
         section!(
             text = mrkdwn!("Or search externally"),
-            accessory = external_select!(
-                "ex_1",
-                placeholder = "Type to search",
-                min_query_length = 2,
-            ),
+            accessory =
+                external_select!("ex_1", placeholder = "Type to search", min_query_length = 2,),
         ),
         section!(
             text = mrkdwn!("Take action"),
@@ -41,7 +41,10 @@ fn main() -> Result<(), slaq::blocks::BuildError> {
     ]?;
 
     for block in blocks {
-        println!("{},", serde_json::to_string_pretty(&block.to_value()).unwrap());
+        println!(
+            "{},",
+            serde_json::to_string_pretty(&block.to_value()).unwrap()
+        );
     }
 
     Ok(())

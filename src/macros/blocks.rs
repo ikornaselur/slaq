@@ -158,7 +158,7 @@ macro_rules! file {
 
 /// Builds a context block from an inline list.
 /// Elements supported: `mrkdwn("...")`, `plain("...")`, `image(url, alt)`, or string literals.
-/// Default for string/text(...) is plain_text (for consistency with header!).
+/// Default for string/text(...) is `plain_text` (for consistency with header!).
 #[macro_export]
 macro_rules! context {
     ( elements = [ $($rest:tt)* ] $(, block_id = $block_id:expr)? $(,)? ) => {{
@@ -200,7 +200,7 @@ macro_rules! markdown {
     }};
 }
 
-/// Builds an input block. Label is a string (plain_text). `element` must convert into `BlockElement`.
+/// Builds an input block. Label is a string (`plain_text`). `element` must convert into `BlockElement`.
 /// Keys: `element` (required), `dispatch_action`, `hint`, `optional`, `block_id`.
 #[macro_export]
 macro_rules! input {
@@ -219,7 +219,7 @@ macro_rules! input {
     };
 }
 
-/// Builds a rich_text block from an elements expression or inline list.
+/// Builds a `rich_text` block from an elements expression or inline list.
 #[macro_export]
 macro_rules! rich_text {
     ( elements = $elements:expr $(, block_id = $block_id:expr)? $(,)? ) => {{
@@ -263,7 +263,7 @@ macro_rules! actions {
     }};
 }
 
-/// Builds a context_actions block from an inline list of context action element expressions.
+/// Builds a `context_actions` block from an inline list of context action element expressions.
 /// Items should be `ContextActionElement` values (e.g., `ContextActionElement::feedback(...)`).
 #[macro_export]
 macro_rules! context_actions {

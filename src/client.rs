@@ -256,7 +256,6 @@ impl Client {
 }
 
 #[cfg(feature = "transport-reqwest")]
-#[allow(dead_code)]
 #[derive(Debug, serde::Deserialize)]
 #[serde(untagged)]
 enum SlackApiResponse<T> {

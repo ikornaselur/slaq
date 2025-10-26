@@ -5,9 +5,7 @@ fn main() -> Result<(), BuildError> {
     let blocks = blocks![
         header!("Status Report"),
         divider!(),
-        file!(
-            external_id = "file-ext-123",
-        ),
+        file!(external_id = "file-ext-123",),
         image!(
             alt_text = "Kittens",
             image_url = "https://placekitten.com/200/300",

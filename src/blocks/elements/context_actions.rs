@@ -1,5 +1,5 @@
-use serde::Serialize;
 use crate::blocks::text::PlainText;
+use serde::Serialize;
 
 /// Element types allowed within context actions blocks.
 #[derive(Debug, Clone, Serialize, PartialEq)]

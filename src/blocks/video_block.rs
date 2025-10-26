@@ -1,9 +1,11 @@
 use serde::Serialize;
 
-use crate::blocks::text::PlainText;
 use crate::blocks::BuildError;
+use crate::blocks::text::PlainText;
 
-fn is_https(url: &str) -> bool { url.starts_with("https://") }
+fn is_https(url: &str) -> bool {
+    url.starts_with("https://")
+}
 
 /// Video block.
 ///
@@ -14,8 +16,8 @@ fn is_https(url: &str) -> bool { url.starts_with("https://") }
 /// - `alt_text` must not be empty.
 /// - `title` and `description` (if provided) are limited to `MAX_VIDEO_TEXT_LEN` characters.
 ///
-/// See: https://docs.slack.dev/reference/block-kit/blocks/video-block
-#[slaq_macros::block(kind = "video", validate = Self::validate)]
+/// See: <https://docs.slack.dev/reference/block-kit/blocks/video-block>
+#[slaq_macros::block(validate = Self::validate)]
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Video {
@@ -136,6 +138,43 @@ mod tests {
         assert_eq!(
             v.build().unwrap_err(),
             BuildError::message("video block alt_text must not be empty")
+        );
+    }
+
+    #[test]
+    fn rejects_overlong_title_and_description() {
+        let long = "x".repeat(crate::blocks::MAX_VIDEO_TEXT_LEN + 1);
+        let err = Video::new(
+            PlainText::new(long.clone()),
+            "https://example.com/video",
+            "https://example.com/thumb",
+            "alt",
+        )
+        .build()
+        .expect_err("title too long");
+        assert_eq!(
+            err,
+            BuildError::message(format!(
+                "video block title cannot exceed {} characters",
+                crate::blocks::MAX_VIDEO_TEXT_LEN
+            ))
+        );
+
+        let err = Video::new(
+            PlainText::new("ok"),
+            "https://example.com/video",
+            "https://example.com/thumb",
+            "alt",
+        )
+        .description(PlainText::new(long))
+        .build()
+        .expect_err("desc too long");
+        assert_eq!(
+            err,
+            BuildError::message(format!(
+                "video block description cannot exceed {} characters",
+                crate::blocks::MAX_VIDEO_TEXT_LEN
+            ))
         );
     }
 }

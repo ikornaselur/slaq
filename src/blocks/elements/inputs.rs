@@ -391,7 +391,10 @@ pub struct RichTextInputElement {
 impl RichTextInputElement {
     #[must_use]
     pub fn new(action_id: impl Into<String>) -> Self {
-        Self { kind: SelectMenuKind::RichTextInput, action_id: action_id.into() }
+        Self {
+            kind: SelectMenuKind::RichTextInput,
+            action_id: action_id.into(),
+        }
     }
 }
 

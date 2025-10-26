@@ -9,9 +9,7 @@ use serde_with::skip_serializing_none;
 #[derive(Debug, Clone, Serialize, Default)]
 #[slaq_macros::slack_api(
     path="/chat.scheduleMessage",
-    chat_method=schedule_message,
     response=ScheduleMessageResponse,
-    call_alias="ScheduleMessageCall"
 )]
 pub struct ScheduleMessage {
     /// Channel, private group, or DM channel to send message to. Can be an encoded ID, or a name. See below[0] for more details.

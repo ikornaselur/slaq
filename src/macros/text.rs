@@ -26,4 +26,3 @@ macro_rules! fields {
     }};
     () => { ::std::vec::Vec::<$crate::blocks::TextObject>::new() };
 }
-

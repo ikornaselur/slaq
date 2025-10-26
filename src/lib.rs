@@ -21,9 +21,7 @@ mod macro_tests {
 
     #[slaq_macros::slack_api(
         path="/dummy.method",
-        chat_method=dummy_call,
         response=DummyResp,
-        call_alias="DummyCall"
     )]
     #[derive(Debug, Clone, serde::Serialize, Default)]
     struct DummyMethod {

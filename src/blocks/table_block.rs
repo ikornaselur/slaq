@@ -1,7 +1,7 @@
 use serde::Serialize;
 
-use crate::blocks::rich_text;
 use crate::blocks::BuildError;
+use crate::blocks::rich_text;
 
 /// Table block.
 ///
@@ -12,8 +12,8 @@ use crate::blocks::BuildError;
 /// - At most `MAX_TABLE_ROWS` rows and `MAX_TABLE_COLUMNS` columns per row.
 /// - `column_settings`, if present, may have at most `MAX_TABLE_COLUMNS` entries.
 ///
-/// See: https://docs.slack.dev/reference/block-kit/blocks/table-block
-#[slaq_macros::block(kind = "table", validate = Self::validate)]
+/// See: <https://docs.slack.dev/reference/block-kit/blocks/table-block>
+#[slaq_macros::block(validate = Self::validate)]
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Table {
@@ -33,7 +33,9 @@ pub enum TableCell {
     /// A raw string cell.
     RawText { text: String },
     /// A rich text cell composed of rich text elements.
-    RichText { elements: Vec<rich_text::RichTextElement> },
+    RichText {
+        elements: Vec<rich_text::RichTextElement>,
+    },
 }
 
 impl TableCell {
@@ -43,7 +45,9 @@ impl TableCell {
     }
     #[must_use]
     pub fn rich(elements: impl Into<Vec<rich_text::RichTextElement>>) -> Self {
-        TableCell::RichText { elements: elements.into() }
+        TableCell::RichText {
+            elements: elements.into(),
+        }
     }
 }
 
@@ -58,21 +62,38 @@ pub struct ColumnSetting {
 }
 
 impl Default for ColumnSetting {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ColumnSetting {
     #[must_use]
-    pub fn new() -> Self { Self { align: None, is_wrapped: None } }
+    pub fn new() -> Self {
+        Self {
+            align: None,
+            is_wrapped: None,
+        }
+    }
     #[must_use]
-    pub fn align(mut self, value: ColumnAlignment) -> Self { self.align = Some(value); self }
+    pub fn align(mut self, value: ColumnAlignment) -> Self {
+        self.align = Some(value);
+        self
+    }
     #[must_use]
-    pub fn wrap(mut self, value: bool) -> Self { self.is_wrapped = Some(value); self }
+    pub fn wrap(mut self, value: bool) -> Self {
+        self.is_wrapped = Some(value);
+        self
+    }
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-pub enum ColumnAlignment { Left, Center, Right }
+pub enum ColumnAlignment {
+    Left,
+    Center,
+    Right,
+}
 
 impl Table {
     fn validate(&self) -> Result<(), BuildError> {
@@ -134,6 +155,34 @@ mod tests {
         assert!(res.is_err());
         let msg = format!(
             "table block rows support at most {} cells",
+            crate::blocks::MAX_TABLE_COLUMNS
+        );
+        assert_eq!(res.unwrap_err(), BuildError::message(msg));
+    }
+
+    #[test]
+    fn table_rejects_zero_rows() {
+        let res = Table::new(Vec::<Vec<TableCell>>::new()).build();
+        assert_eq!(
+            res.unwrap_err(),
+            BuildError::message("table block requires at least one row")
+        );
+    }
+
+    #[test]
+    fn table_rejects_empty_row() {
+        let rows = vec![Vec::<TableCell>::new()];
+        let err = Table::new(rows).build().unwrap_err();
+        assert!(err.to_string().contains("must contain at least one cell"));
+    }
+
+    #[test]
+    fn table_rejects_column_settings_too_many() {
+        let rows = vec![vec![TableCell::raw("x")]];
+        let cs = vec![ColumnSetting::new(); crate::blocks::MAX_TABLE_COLUMNS + 1];
+        let res = Table::new(rows).column_settings(cs).build();
+        let msg = format!(
+            "table block column_settings supports at most {} entries",
             crate::blocks::MAX_TABLE_COLUMNS
         );
         assert_eq!(res.unwrap_err(), BuildError::message(msg));

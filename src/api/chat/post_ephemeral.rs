@@ -9,9 +9,7 @@ use serde_with::skip_serializing_none;
 #[derive(Debug, Clone, Serialize, Default)]
 #[slaq_macros::slack_api(
     path="/chat.postEphemeral",
-    chat_method=post_ephemeral,
     response=PostEphemeralResponse,
-    call_alias="PostEphemeralCall"
 )]
 pub struct PostEphemeral {
     /// Channel, private group, or IM channel to send message to. Can be an encoded ID, or a name.

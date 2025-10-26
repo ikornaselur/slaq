@@ -3,36 +3,36 @@
 //! This module is expanding to cover every block type with ergonomic builders
 //! and validations derived from Slack's documentation. 
 
-pub mod elements;
-pub mod rich_text;
-pub mod text;
-mod simple;
-mod image_block;
-mod file_block;
-mod context_block;
-mod context_actions_block;
 mod actions_block;
-mod section_block;
+mod context_actions_block;
+mod context_block;
+pub mod elements;
+mod file_block;
+mod image_block;
 mod input_block;
-mod video_block;
+pub mod rich_text;
+mod section_block;
+mod simple;
 mod table_block;
+pub mod text;
+mod video_block;
 
+pub use actions_block::Actions;
+pub use context_actions_block::ContextActions;
+pub use context_block::Context;
 pub use elements::{
     BlockElement, ButtonElement, ButtonStyle, ConfirmationDialog, ContextActionElement,
     ContextElement, FeedbackButton, FeedbackButtons, IconButton, SelectOption, StaticSelectElement,
 };
-pub use simple::{Divider, Header, Markdown};
-pub use image_block::{Image, SlackFileRef};
 pub use file_block::{File, FileSource};
-pub use context_block::Context;
-pub use context_actions_block::ContextActions;
-pub use actions_block::Actions;
-pub use section_block::Section;
+pub use image_block::{Image, SlackFileRef};
 pub use input_block::Input;
-pub use video_block::Video;
-pub use table_block::{Table, TableCell, ColumnSetting, ColumnAlignment};
 pub use rich_text::{BroadcastRange, ListStyle, RichTextElement, RichTextNode, TextStyle};
+pub use section_block::Section;
+pub use simple::{Divider, Header, Markdown};
+pub use table_block::{ColumnAlignment, ColumnSetting, Table, TableCell};
 pub use text::{MrkdwnText, PlainText, TextObject};
+pub use video_block::Video;
 
 use serde::Serialize;
 use thiserror::Error;
@@ -52,6 +52,14 @@ pub(crate) const MAX_VIDEO_TEXT_LEN: usize = 200;
 // https://docs.slack.dev/reference/block-kit/blocks/table-block
 pub(crate) const MAX_TABLE_ROWS: usize = 100;
 pub(crate) const MAX_TABLE_COLUMNS: usize = 20;
+// Common limits from Slack docs
+pub(crate) const MAX_BLOCK_ID_LEN: usize = 255;
+pub(crate) const MAX_HEADER_TEXT_LEN: usize = 150;
+pub(crate) const MAX_IMAGE_ALT_TEXT_LEN: usize = 2000;
+pub(crate) const MAX_IMAGE_URL_LEN: usize = 3000;
+pub(crate) const MAX_IMAGE_TITLE_TEXT_LEN: usize = 2000;
+pub(crate) const MAX_SECTION_TEXT_LEN: usize = 3000;
+pub(crate) const MAX_SECTION_FIELD_TEXT_LEN: usize = 2000;
 
 /// Errors returned when validating or building a block payload.
 #[derive(Debug, Clone, Error, PartialEq, Eq)]
@@ -71,8 +79,6 @@ impl BuildError {
 }
 
 pub type BuildResult = Result<Block, BuildError>;
-
- 
 
 /// Enumeration of all supported blocks.
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -104,16 +110,7 @@ impl Block {
     }
 }
 
-
-
-
-
-
-
-
-
-
-#[slaq_macros::block(kind = "rich_text", validate = Self::validate)]
+#[slaq_macros::block(validate = Self::validate)]
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct RichText {

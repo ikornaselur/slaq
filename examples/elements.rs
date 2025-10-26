@@ -1,5 +1,9 @@
-use slaq::blocks::elements::*;
-use slaq::blocks::*;
+use slaq::blocks::elements::{
+    ButtonElement, DatePickerElement, EmailInputElement, ExternalSelectElement, NumberInputElement,
+    OverflowElement, PlainTextInputElement, SelectOption, StaticSelectElement, TimePickerElement,
+    UrlInputElement,
+};
+use slaq::blocks::{Actions, BlockElement, BuildError, Input, PlainText};
 
 fn main() -> Result<(), BuildError> {
     // Actions block showcasing common interactive elements
@@ -32,9 +36,9 @@ fn main() -> Result<(), BuildError> {
     // Input blocks showcasing inputs/selectors
     let pt_input = Input::new(
         PlainText::new("Comments"),
-        BlockElement::from(PlainTextInputElement::new("comment").placeholder(PlainText::new(
-            "Add a comment",
-        ))),
+        BlockElement::from(
+            PlainTextInputElement::new("comment").placeholder(PlainText::new("Add a comment")),
+        ),
     )
     .build()?;
 
@@ -78,9 +82,11 @@ fn main() -> Result<(), BuildError> {
         email_input,
         url_input,
     ] {
-        println!("{}", serde_json::to_string_pretty(&block.to_value()).unwrap());
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&block.to_value()).unwrap()
+        );
     }
 
     Ok(())
 }
-

@@ -1,4 +1,7 @@
-use slaq::{actions, context, context_actions, datepicker, divider, file, header, image, input, markdown, mrkdwn, plain, rich_text, section, table, video};
+use slaq::{
+    actions, context, context_actions, datepicker, divider, file, header, image, input, markdown,
+    mrkdwn, plain, rich_text, section, table, video,
+};
 
 #[test]
 fn header_macro_matches_builder() {
@@ -97,16 +100,13 @@ fn image_macro_matches_builder_with_slack_file() {
 
 #[test]
 fn file_macro_matches_builder() {
-    let macro_block = file!(
-        external_id = "ABCD1",
-        block_id = "block-1",
-    )
-    .unwrap();
+    let macro_block = file!(external_id = "ABCD1", block_id = "block-1",).unwrap();
 
-    let builder_block = slaq::blocks::File::new("ABCD1".to_string(), slaq::blocks::FileSource::Remote)
-        .block_id("block-1")
-        .build()
-        .unwrap();
+    let builder_block =
+        slaq::blocks::File::new("ABCD1".to_string(), slaq::blocks::FileSource::Remote)
+            .block_id("block-1")
+            .build()
+            .unwrap();
 
     assert_eq!(macro_block.to_value(), builder_block.to_value());
 }
@@ -116,7 +116,10 @@ fn context_macro_matches_builder() {
     let macro_block = context!(
         elements = [
             "*Location*: Dogpatch",
-            image("https://image.freepik.com/free-photo/red-drawing-pin_1156-445.jpg", "pin"),
+            image(
+                "https://image.freepik.com/free-photo/red-drawing-pin_1156-445.jpg",
+                "pin"
+            ),
         ],
         block_id = "ctx-1",
     )
@@ -139,7 +142,10 @@ fn context_macro_matches_builder() {
 #[test]
 fn markdown_macro_matches_builder() {
     let m = markdown!("Hello", block_id = "m1").unwrap();
-    let b = slaq::blocks::Markdown::new("Hello").block_id("m1").build().unwrap();
+    let b = slaq::blocks::Markdown::new("Hello")
+        .block_id("m1")
+        .build()
+        .unwrap();
     assert_eq!(m.to_value(), b.to_value());
 }
 
@@ -147,22 +153,33 @@ fn markdown_macro_matches_builder() {
 fn input_macro_matches_builder() {
     let elem = datepicker!("date");
     let m = input!("Date", element = elem, hint = "Optional").unwrap();
-    let b = slaq::blocks::Input::new(slaq::blocks::PlainText::new("Date"),
-        slaq::blocks::BlockElement::from(slaq::blocks::elements::DatePickerElement::new("date")))
-        .hint(slaq::blocks::PlainText::new("Optional"))
-        .build()
-        .unwrap();
+    let b = slaq::blocks::Input::new(
+        slaq::blocks::PlainText::new("Date"),
+        slaq::blocks::BlockElement::from(slaq::blocks::elements::DatePickerElement::new("date")),
+    )
+    .hint(slaq::blocks::PlainText::new("Optional"))
+    .build()
+    .unwrap();
     assert_eq!(m.to_value(), b.to_value());
 }
 
 #[test]
 fn table_macro_matches_builder() {
     let rows = vec![
-        vec![slaq::blocks::TableCell::raw("A"), slaq::blocks::TableCell::raw("B")],
-        vec![slaq::blocks::TableCell::raw("C"), slaq::blocks::TableCell::raw("D")],
+        vec![
+            slaq::blocks::TableCell::raw("A"),
+            slaq::blocks::TableCell::raw("B"),
+        ],
+        vec![
+            slaq::blocks::TableCell::raw("C"),
+            slaq::blocks::TableCell::raw("D"),
+        ],
     ];
     let m = table!(rows = rows.clone(), block_id = "t1").unwrap();
-    let b = slaq::blocks::Table::new(rows).block_id("t1").build().unwrap();
+    let b = slaq::blocks::Table::new(rows)
+        .block_id("t1")
+        .build()
+        .unwrap();
     assert_eq!(m.to_value(), b.to_value());
 }
 
@@ -172,24 +189,27 @@ fn rich_text_macro_matches_builder() {
         slaq::blocks::rich_text::RichTextNode::text("Hi"),
     ]);
     let m = rich_text!([elem.clone()], block_id = "r1").unwrap();
-    let b = slaq::blocks::RichText::new(vec![elem]).block_id("r1").build().unwrap();
+    let b = slaq::blocks::RichText::new(vec![elem])
+        .block_id("r1")
+        .build()
+        .unwrap();
     assert_eq!(m.to_value(), b.to_value());
 }
 
 #[test]
 fn actions_macro_matches_builder() {
-    let select = slaq::blocks::elements::StaticSelectElement::new("sel")
-        .options(vec![slaq::blocks::SelectOption::new(slaq::blocks::PlainText::new("A"), "a")]);
+    let select = slaq::blocks::elements::StaticSelectElement::new("sel").options(vec![
+        slaq::blocks::SelectOption::new(slaq::blocks::PlainText::new("A"), "a"),
+    ]);
     let button = slaq::blocks::ButtonElement::new(slaq::blocks::PlainText::new("Go"), "go");
 
     let macro_block = actions!([select, button], block_id = "act-1").unwrap();
 
     let builder_block = slaq::blocks::Actions::new(vec![
         slaq::blocks::BlockElement::from(
-            slaq::blocks::elements::StaticSelectElement::new("sel").options(vec![slaq::blocks::SelectOption::new(
-                slaq::blocks::PlainText::new("A"),
-                "a",
-            )]),
+            slaq::blocks::elements::StaticSelectElement::new("sel").options(vec![
+                slaq::blocks::SelectOption::new(slaq::blocks::PlainText::new("A"), "a"),
+            ]),
         ),
         slaq::blocks::BlockElement::from(slaq::blocks::ButtonElement::new(
             slaq::blocks::PlainText::new("Go"),
@@ -208,9 +228,15 @@ fn context_actions_macro_matches_builder() {
     use slaq::blocks::elements::{ContextActionElement, FeedbackButton};
     let pos = FeedbackButton::new("👍", "positive");
     let neg = FeedbackButton::new("👎", "negative");
-    let macro_block = context_actions!([ContextActionElement::feedback("fb_1", pos.clone(), neg.clone())]).unwrap();
-    let builder_block = slaq::blocks::ContextActions::new(vec![ContextActionElement::feedback("fb_1", pos, neg)])
-        .build()
-        .unwrap();
+    let macro_block = context_actions!([ContextActionElement::feedback(
+        "fb_1",
+        pos.clone(),
+        neg.clone()
+    )])
+    .unwrap();
+    let builder_block =
+        slaq::blocks::ContextActions::new(vec![ContextActionElement::feedback("fb_1", pos, neg)])
+            .build()
+            .unwrap();
     assert_eq!(macro_block.to_value(), builder_block.to_value());
 }

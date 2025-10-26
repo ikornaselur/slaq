@@ -1,5 +1,5 @@
-use serde::Serialize;
 use super::common::{BlockElement, ConfirmationDialog, SelectOption};
+use serde::Serialize;
 
 /// Checkboxes element.
 #[derive(Debug, Clone, Serialize, PartialEq)]

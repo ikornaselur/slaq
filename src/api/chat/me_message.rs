@@ -9,9 +9,7 @@ use serde_with::skip_serializing_none;
 #[derive(Debug, Clone, Serialize, Default)]
 #[slaq_macros::slack_api(
     path="/chat.meMessage",
-    chat_method=me_message,
     response=MeMessageResponse,
-    call_alias="MeMessageCall"
 )]
 pub struct MeMessage {
     /// Channel to send message to. Can be a public channel, private group or IM channel. Can be an encoded ID, or a name.

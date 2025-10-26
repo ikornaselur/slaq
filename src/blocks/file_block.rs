@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-#[slaq_macros::block(kind = "file")]
+#[slaq_macros::block()]
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct File {
@@ -15,4 +15,3 @@ pub struct File {
 pub enum FileSource {
     Remote,
 }
-

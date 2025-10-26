@@ -1,19 +1,19 @@
 use serde::Serialize;
 
+use crate::blocks::BuildError;
 use crate::blocks::elements::BlockElement;
 use crate::blocks::text::PlainText;
-use crate::blocks::BuildError;
 
 /// Input block.
 ///
-/// Captures user input via an element (e.g., plain_text_input, select, datepicker).
+/// Captures user input via an element (e.g., `plain_text_input`, select, datepicker).
 ///
 /// Constraints:
 /// - `label` and optional `hint` are limited to `MAX_INPUT_TEXT_LEN` characters.
 /// - `dispatch_action` is not supported with the `file_input` element.
 ///
-/// See: https://docs.slack.dev/reference/block-kit/blocks/input-block
-#[slaq_macros::block(kind = "input", validate = Self::validate)]
+/// See: <https://docs.slack.dev/reference/block-kit/blocks/input-block>
+#[slaq_macros::block(validate = Self::validate)]
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Input {
@@ -59,12 +59,13 @@ impl Input {
             )));
         }
         if let Some(hint) = &self.hint
-            && hint.text.len() > crate::blocks::MAX_INPUT_TEXT_LEN {
-                return Err(BuildError::message(format!(
-                    "input block hint cannot exceed {} characters",
-                    crate::blocks::MAX_INPUT_TEXT_LEN
-                )));
-            }
+            && hint.text.len() > crate::blocks::MAX_INPUT_TEXT_LEN
+        {
+            return Err(BuildError::message(format!(
+                "input block hint cannot exceed {} characters",
+                crate::blocks::MAX_INPUT_TEXT_LEN
+            )));
+        }
         Ok(())
     }
 }

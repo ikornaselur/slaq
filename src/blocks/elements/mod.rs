@@ -1,40 +1,29 @@
+pub mod buttons;
+pub mod choices;
 pub mod common;
 pub mod context;
 pub mod context_actions;
-pub mod buttons;
-pub mod selects;
 pub mod inputs;
-pub mod choices;
+pub mod selects;
 
 // Re-exports for crate consumers
 pub use buttons::{ButtonElement, WorkflowButtonElement};
 pub use choices::{CheckboxesElement, OverflowElement, RadioButtonsElement};
-pub use common::{BlockElement, ButtonStyle, ConfirmationDialog, DispatchActionConfig, DispatchActionTrigger, OptionGroup, SelectOption};
+pub use common::{
+    BlockElement, ButtonStyle, ConfirmationDialog, DispatchActionConfig, DispatchActionTrigger,
+    OptionGroup, SelectOption,
+};
 pub use context::{ContextElement, ContextImage, ImageElement};
 pub use context_actions::{ContextActionElement, FeedbackButton, FeedbackButtons, IconButton};
 pub use inputs::{
-    DatePickerElement,
-    DateTimePickerElement,
-    EmailInputElement,
-    NumberInputElement,
-    PlainTextInputElement,
-    RichTextInputElement,
-    TimePickerElement,
-    UrlInputElement,
+    DatePickerElement, DateTimePickerElement, EmailInputElement, NumberInputElement,
+    PlainTextInputElement, RichTextInputElement, TimePickerElement, UrlInputElement,
 };
 pub use selects::{
-    ChannelsSelectElement,
-    ConversationsFilter,
-    ConversationsFilterKind,
-    ConversationsSelectElement,
-    ExternalSelectElement,
-    MultiChannelsSelectElement,
-    MultiConversationsSelectElement,
-    MultiExternalSelectElement,
-    MultiStaticSelectElement,
-    MultiUsersSelectElement,
-    StaticSelectElement,
-    UsersSelectElement,
+    ChannelsSelectElement, ConversationsFilter, ConversationsFilterKind,
+    ConversationsSelectElement, ExternalSelectElement, MultiChannelsSelectElement,
+    MultiConversationsSelectElement, MultiExternalSelectElement, MultiStaticSelectElement,
+    MultiUsersSelectElement, StaticSelectElement, UsersSelectElement,
 };
 
 #[cfg(test)]
@@ -139,7 +128,8 @@ mod tests {
 
     #[test]
     fn multi_channels_select_serializes() {
-        let mc = MultiChannelsSelectElement::new("mch").initial_channels(vec!["C1".into(), "C2".into()]);
+        let mc =
+            MultiChannelsSelectElement::new("mch").initial_channels(vec!["C1".into(), "C2".into()]);
         let json = serde_json::to_string(&mc).unwrap();
         assert!(json.contains("\"type\":\"multi_channels_select\""));
         assert!(json.contains("C2"));
@@ -163,7 +153,10 @@ mod tests {
 
     #[test]
     fn number_input_serializes() {
-        let n = NumberInputElement::new("num").min_value(0).max_value(10).decimal_allowed(true);
+        let n = NumberInputElement::new("num")
+            .min_value(0)
+            .max_value(10)
+            .decimal_allowed(true);
         let json = serde_json::to_string(&n).unwrap();
         assert!(json.contains("\"type\":\"number_input\""));
         assert!(json.contains("\"is_decimal_allowed\":true"));
@@ -244,7 +237,10 @@ mod tests {
             .response_url_enabled(true)
             .filter(
                 ConversationsFilter::new()
-                    .include(vec![ConversationsFilterKind::Im, ConversationsFilterKind::Private])
+                    .include(vec![
+                        ConversationsFilterKind::Im,
+                        ConversationsFilterKind::Private,
+                    ])
                     .exclude_bot_users(true),
             );
         let json = serde_json::to_string(&c).unwrap();

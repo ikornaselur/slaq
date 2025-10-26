@@ -9,9 +9,7 @@ use serde_with::skip_serializing_none;
 #[derive(Debug, Clone, Serialize, Default)]
 #[slaq_macros::slack_api(
     path="/chat.scheduledMessages.list",
-    chat_method=scheduled_messages_list,
     response=ScheduledMessagesListResponse,
-    call_alias="ScheduledMessagesListCall"
 )]
 pub struct ScheduledMessagesList {
     /// The channel of the scheduled messages

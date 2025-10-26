@@ -1,8 +1,9 @@
+use crate::blocks::BuildError;
 use serde::Serialize;
 
 use crate::blocks::text::PlainText;
 
-#[slaq_macros::block(kind = "divider")]
+#[slaq_macros::block()]
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Divider {
@@ -10,7 +11,7 @@ pub struct Divider {
     pub block_id: Option<String>,
 }
 
-#[slaq_macros::block(kind = "markdown")]
+#[slaq_macros::block()]
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Markdown {
@@ -19,7 +20,7 @@ pub struct Markdown {
     pub block_id: Option<String>,
 }
 
-#[slaq_macros::block(kind = "header")]
+#[slaq_macros::block(validate = Self::validate)]
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Header {
@@ -28,3 +29,14 @@ pub struct Header {
     pub block_id: Option<String>,
 }
 
+impl Header {
+    fn validate(&self) -> Result<(), BuildError> {
+        if self.text.text.len() > crate::blocks::MAX_HEADER_TEXT_LEN {
+            return Err(BuildError::message(format!(
+                "header block text cannot exceed {} characters",
+                crate::blocks::MAX_HEADER_TEXT_LEN
+            )));
+        }
+        Ok(())
+    }
+}

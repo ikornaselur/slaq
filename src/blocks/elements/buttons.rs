@@ -84,14 +84,22 @@ pub struct WorkflowButtonElement {
 impl WorkflowButtonElement {
     #[must_use]
     pub fn new(text: PlainText, action_id: impl Into<String>) -> Self {
-        Self { kind: WorkflowButtonKind::WorkflowButton, text, action_id: action_id.into() }
+        Self {
+            kind: WorkflowButtonKind::WorkflowButton,
+            text,
+            action_id: action_id.into(),
+        }
     }
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
-enum WorkflowButtonKind { WorkflowButton }
+enum WorkflowButtonKind {
+    WorkflowButton,
+}
 
 impl From<WorkflowButtonElement> for BlockElement {
-    fn from(value: WorkflowButtonElement) -> Self { BlockElement::from_struct(&value) }
+    fn from(value: WorkflowButtonElement) -> Self {
+        BlockElement::from_struct(&value)
+    }
 }

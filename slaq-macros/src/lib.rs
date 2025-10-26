@@ -13,6 +13,7 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut path_lit: Option<String> = None;
     let mut response_ty: Option<syn::Ident> = None;
+    let mut unknown: Vec<String> = Vec::new();
 
     for meta in metas {
         if let Meta::NameValue(MetaNameValue { path, value, .. }) = meta
@@ -33,13 +34,18 @@ pub fn slack_api(args: TokenStream, input: TokenStream) -> TokenStream {
                         response_ty = Some(id.clone());
                     }
                 }
-                _ => {}
+                _ => {
+                    unknown.push(key);
+                }
             }
         }
     }
 
     let path_lit = path_lit.expect("slack_api requires path=\"...\"");
     let response_ty = response_ty.expect("slack_api requires response=Type");
+    if !unknown.is_empty() {
+        panic!("slack_api: unsupported keys: {}", unknown.join(", "));
+    }
 
     let struct_ident = item.ident.clone();
 
@@ -178,31 +184,26 @@ pub fn block(args: TokenStream, input: TokenStream) -> TokenStream {
         .parse(args)
         .expect("failed to parse attribute arguments");
 
-    let mut kind_lit: Option<String> = None;
     let mut validate_fn: Option<ExprPath> = None;
+    let mut unknown: Vec<String> = Vec::new();
     for meta in metas {
         if let Meta::NameValue(MetaNameValue { path, value, .. }) = meta
             && let Some(ident) = path.get_ident().cloned()
         {
             let key = ident.to_string();
             match (key.as_str(), value) {
-                (
-                    "kind",
-                    syn::Expr::Lit(syn::ExprLit {
-                        lit: Lit::Str(s), ..
-                    }),
-                ) => {
-                    kind_lit = Some(s.value());
-                }
                 ("validate", syn::Expr::Path(p)) => {
                     validate_fn = Some(p);
                 }
-                _ => {}
+                _ => {
+                    unknown.push(key);
+                }
             }
         }
     }
-
-    let _kind_lit = kind_lit.expect("block requires kind=\"...\"");
+    if !unknown.is_empty() {
+        panic!("block: unsupported keys: {}", unknown.join(", "));
+    }
 
     let item = parse_macro_input!(input as ItemStruct);
     let struct_ident = item.ident.clone();
@@ -215,6 +216,22 @@ pub fn block(args: TokenStream, input: TokenStream) -> TokenStream {
         let ident = field.ident.as_ref().expect("named fields only");
 
         let meta = parse_block_field_meta(field);
+        // Cross-cutting validation: enforce block_id length if present
+        if ident == "block_id" {
+            let tokens = quote! {
+                if let ::core::option::Option::Some(id) = self.block_id.as_ref() {
+                    if id.len() > crate::blocks::MAX_BLOCK_ID_LEN {
+                        return ::core::result::Result::Err(
+                            crate::blocks::BuildError::message(format!(
+                                "block_id cannot exceed {} characters",
+                                crate::blocks::MAX_BLOCK_ID_LEN
+                            )),
+                        );
+                    }
+                }
+            };
+            field_validations.push(tokens);
+        }
         if let Some(max) = meta.max_items {
             let field_name = ident.to_string();
             let tokens = if is_option(&field.ty).is_some() {
