@@ -128,7 +128,7 @@ pub struct Image {
     /// A Slack image file reference. Optional and mutually exclusive with `image_url`.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub slack_file: Option<SlackFileRef>,
-    /// Optional title for the image (plain_text only).
+    /// Optional title for the image (`plain_text` only).
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub title: Option<PlainText>,
     /// Optional block identifier.
@@ -200,7 +200,7 @@ pub struct Actions {
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Section {
-    /// Primary text content for the section (mrkdwn by default, plain_text allowed).
+    /// Primary text content for the section (mrkdwn by default, `plain_text` allowed).
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub text: Option<TextObject>,
     /// Compact field list; required when `text` is absent. Max 10 items.
@@ -221,11 +221,11 @@ pub struct Section {
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Input {
-    /// Label shown above the input element (plain_text only, <= 2000 chars).
+    /// Label shown above the input element (`plain_text` only, <= 2000 chars).
     pub label: PlainText,
     /// The interactive element to render (text input, select, etc.).
     pub element: BlockElement,
-    /// Dispatches block_actions payloads on user interaction. Unsupported for file_input.
+    /// Dispatches `block_actions` payloads on user interaction. Unsupported for `file_input`.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub dispatch_action: Option<bool>,
     /// Optional helper text displayed below the input.
@@ -251,7 +251,7 @@ pub struct Video {
     pub thumbnail_url: String,
     /// Tooltip for the video, required for accessibility.
     pub alt_text: String,
-    /// Optional description (plain_text, < 200 characters).
+    /// Optional description (`plain_text`, < 200 characters).
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub description: Option<PlainText>,
     /// Hyperlink for the title text (must be HTTPS).
@@ -260,7 +260,7 @@ pub struct Video {
     /// Provider icon URL, such as a service logo.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub provider_icon_url: Option<String>,
-    /// Provider name, e.g., YouTube.
+    /// Provider name, e.g., `YouTube`.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub provider_name: Option<String>,
     /// Author name to display (< 50 characters).
@@ -275,7 +275,7 @@ pub struct Video {
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct RichText {
-    /// Nested rich text elements mirroring Slack's rich_text schema.
+    /// Nested rich text elements mirroring Slack's `rich_text` schema.
     pub elements: Vec<rich_text::RichTextElement>,
     /// Optional block identifier.
     #[serde(skip_serializing_if = "Option::is_none", default)]
@@ -327,6 +327,12 @@ pub struct ColumnSetting {
     pub align: Option<ColumnAlignment>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub is_wrapped: Option<bool>,
+}
+
+impl Default for ColumnSetting {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ColumnSetting {
@@ -395,8 +401,7 @@ impl Context {
         }
         if self.elements.len() > MAX_CONTEXT_ELEMENTS {
             return Err(BuildError::message(format!(
-                "context block supports at most {} elements",
-                MAX_CONTEXT_ELEMENTS
+                "context block supports at most {MAX_CONTEXT_ELEMENTS} elements"
             )));
         }
         Ok(())
@@ -412,8 +417,7 @@ impl ContextActions {
         }
         if self.elements.len() > MAX_CONTEXT_ACTIONS_ELEMENTS {
             return Err(BuildError::message(format!(
-                "context_actions block supports at most {} elements",
-                MAX_CONTEXT_ACTIONS_ELEMENTS
+                "context_actions block supports at most {MAX_CONTEXT_ACTIONS_ELEMENTS} elements"
             )));
         }
         Ok(())
@@ -429,8 +433,7 @@ impl Actions {
         }
         if self.elements.len() > MAX_ACTIONS_ELEMENTS {
             return Err(BuildError::message(format!(
-                "actions block supports at most {} elements",
-                MAX_ACTIONS_ELEMENTS
+                "actions block supports at most {MAX_ACTIONS_ELEMENTS} elements"
             )));
         }
         Ok(())
@@ -440,7 +443,7 @@ impl Actions {
 impl Section {
     fn validate(&self) -> Result<(), BuildError> {
         let has_text = self.text.is_some();
-        let field_count = self.fields.as_ref().map(|f| f.len()).unwrap_or(0);
+        let field_count = self.fields.as_ref().map_or(0, std::vec::Vec::len);
 
         if !has_text && field_count == 0 {
             return Err(BuildError::message(
@@ -455,8 +458,7 @@ impl Section {
             }
             if fields.len() > MAX_SECTION_FIELDS {
                 return Err(BuildError::message(format!(
-                    "section block supports at most {} fields",
-                    MAX_SECTION_FIELDS
+                    "section block supports at most {MAX_SECTION_FIELDS} fields"
                 )));
             }
         }
@@ -471,26 +473,23 @@ impl Input {
         }
         if self.label.text.len() > MAX_INPUT_TEXT_LEN {
             return Err(BuildError::message(format!(
-                "input block label cannot exceed {} characters",
-                MAX_INPUT_TEXT_LEN
+                "input block label cannot exceed {MAX_INPUT_TEXT_LEN} characters"
             )));
         }
-        if let Some(hint) = &self.hint {
-            if hint.text.len() > MAX_INPUT_TEXT_LEN {
-                return Err(BuildError::message(format!(
-                    "input block hint cannot exceed {} characters",
-                    MAX_INPUT_TEXT_LEN
-                )));
-            }
+        if let Some(hint) = &self.hint
+            && hint.text.len() > MAX_INPUT_TEXT_LEN
+        {
+            return Err(BuildError::message(format!(
+                "input block hint cannot exceed {MAX_INPUT_TEXT_LEN} characters"
+            )));
         }
-        if self.dispatch_action.unwrap_or(false) {
-            if let Some(element_type) = self.element.0.get("type").and_then(|v| v.as_str()) {
-                if element_type == "file_input" {
-                    return Err(BuildError::message(
-                        "input block cannot use dispatch_action with file_input element",
-                    ));
-                }
-            }
+        if self.dispatch_action.unwrap_or(false)
+            && let Some(element_type) = self.element.0.get("type").and_then(|v| v.as_str())
+            && element_type == "file_input"
+        {
+            return Err(BuildError::message(
+                "input block cannot use dispatch_action with file_input element",
+            ));
         }
         Ok(())
     }
@@ -503,17 +502,15 @@ impl Video {
         }
         if self.title.text.len() > MAX_VIDEO_TEXT_LEN {
             return Err(BuildError::message(format!(
-                "video block title cannot exceed {} characters",
-                MAX_VIDEO_TEXT_LEN
+                "video block title cannot exceed {MAX_VIDEO_TEXT_LEN} characters"
             )));
         }
-        if let Some(description) = &self.description {
-            if description.text.len() > MAX_VIDEO_TEXT_LEN {
-                return Err(BuildError::message(format!(
-                    "video block description cannot exceed {} characters",
-                    MAX_VIDEO_TEXT_LEN
-                )));
-            }
+        if let Some(description) = &self.description
+            && description.text.len() > MAX_VIDEO_TEXT_LEN
+        {
+            return Err(BuildError::message(format!(
+                "video block description cannot exceed {MAX_VIDEO_TEXT_LEN} characters"
+            )));
         }
         if self.alt_text.trim().is_empty() {
             return Err(BuildError::message(
@@ -530,12 +527,12 @@ impl Video {
                 "video block thumbnail_url must use https scheme",
             ));
         }
-        if let Some(title_url) = &self.title_url {
-            if !is_https(title_url) {
-                return Err(BuildError::message(
-                    "video block title_url must use https scheme",
-                ));
-            }
+        if let Some(title_url) = &self.title_url
+            && !is_https(title_url)
+        {
+            return Err(BuildError::message(
+                "video block title_url must use https scheme",
+            ));
         }
         Ok(())
     }
@@ -559,31 +556,27 @@ impl Table {
         }
         if self.rows.len() > MAX_TABLE_ROWS {
             return Err(BuildError::message(format!(
-                "table block supports at most {} rows",
-                MAX_TABLE_ROWS
+                "table block supports at most {MAX_TABLE_ROWS} rows"
             )));
         }
         for (idx, row) in self.rows.iter().enumerate() {
             if row.is_empty() {
                 return Err(BuildError::message(format!(
-                    "table block row {} must contain at least one cell",
-                    idx
+                    "table block row {idx} must contain at least one cell"
                 )));
             }
             if row.len() > MAX_TABLE_COLUMNS {
                 return Err(BuildError::message(format!(
-                    "table block rows support at most {} cells",
-                    MAX_TABLE_COLUMNS
+                    "table block rows support at most {MAX_TABLE_COLUMNS} cells"
                 )));
             }
         }
-        if let Some(settings) = &self.column_settings {
-            if settings.len() > MAX_TABLE_COLUMNS {
-                return Err(BuildError::message(format!(
-                    "table block column_settings supports at most {} entries",
-                    MAX_TABLE_COLUMNS
-                )));
-            }
+        if let Some(settings) = &self.column_settings
+            && settings.len() > MAX_TABLE_COLUMNS
+        {
+            return Err(BuildError::message(format!(
+                "table block column_settings supports at most {MAX_TABLE_COLUMNS} entries"
+            )));
         }
         Ok(())
     }

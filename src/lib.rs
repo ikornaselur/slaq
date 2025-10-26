@@ -4,6 +4,7 @@
 //! Disable default features for a build-only crate.
 pub mod api;
 pub mod blocks;
+mod macros;
 
 /// Default Slack Web API base URL.
 pub const DEFAULT_BASE_URL: &str = "https://slack.com/api";

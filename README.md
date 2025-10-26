@@ -106,18 +106,6 @@ let blocks = vec![
     blocks::Image::new("Kittens!")
         .image_url("https://placekitten.com/200/300")
         .build()?,
-    blocks::Video::new(
-        PlainText::new("Highlights"),
-        "https://example.com/embed/abc",
-        "https://example.com/thumb.jpg",
-        "Product demo video",
-    )
-    .build()?,
-    blocks::Actions::new(vec![BlockElement::from(
-        ButtonElement::new(PlainText::new("Acknowledge"), "ack")
-            .style(ButtonStyle::Primary),
-    )])
-    .build()?,
     blocks::Divider::new().build()?,
 ];
 
@@ -125,6 +113,12 @@ let payload = PostMessage::new(channel)
     .text("Hello with blocks")
     .blocks(blocks);
 ```
+
+
+
+
+
+
 
 Examples
 --------
