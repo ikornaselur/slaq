@@ -1,7 +1,7 @@
-//! Slaq: Typed Slack Web API builder with optional transport.
+//! Slaq: Typed Slack Web API builders with an optional transport.
 //!
-//! By default includes a blocking reqwest-based client.
-//! Disable default features for a build-only crate.
+//! The crate defaults to build-only (no HTTP client). Enable the
+//! `transport-reqwest` feature to opt-in to the blocking client.
 pub mod api;
 pub mod blocks;
 mod macros;

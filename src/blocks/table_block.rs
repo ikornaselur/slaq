@@ -3,22 +3,36 @@ use serde::Serialize;
 use crate::blocks::rich_text;
 use crate::blocks::BuildError;
 
-// https://docs.slack.dev/reference/block-kit/blocks/table-block
+/// Table block.
+///
+/// Displays rows of cells with optional per-column settings.
+///
+/// Constraints:
+/// - Requires at least one row, each row at least one cell.
+/// - At most `MAX_TABLE_ROWS` rows and `MAX_TABLE_COLUMNS` columns per row.
+/// - `column_settings`, if present, may have at most `MAX_TABLE_COLUMNS` entries.
+///
+/// See: https://docs.slack.dev/reference/block-kit/blocks/table-block
 #[slaq_macros::block(kind = "table", validate = Self::validate)]
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Table {
+    /// Rows of table cells.
     pub rows: Vec<Vec<TableCell>>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
+    /// Optional per-column display settings.
     pub column_settings: Option<Vec<ColumnSetting>>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
+    /// Optional block identifier.
     pub block_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum TableCell {
+    /// A raw string cell.
     RawText { text: String },
+    /// A rich text cell composed of rich text elements.
     RichText { elements: Vec<rich_text::RichTextElement> },
 }
 
@@ -36,8 +50,10 @@ impl TableCell {
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct ColumnSetting {
     #[serde(skip_serializing_if = "Option::is_none", default)]
+    /// Horizontal alignment.
     pub align: Option<ColumnAlignment>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
+    /// Whether text in this column wraps.
     pub is_wrapped: Option<bool>,
 }
 
@@ -94,3 +110,32 @@ impl Table {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn table_rejects_too_many_rows() {
+        let rows = vec![vec![TableCell::raw("x")]; crate::blocks::MAX_TABLE_ROWS + 1];
+        let res = Table::new(rows).build();
+        assert!(res.is_err());
+        let msg = format!(
+            "table block supports at most {} rows",
+            crate::blocks::MAX_TABLE_ROWS
+        );
+        assert_eq!(res.unwrap_err(), BuildError::message(msg));
+    }
+
+    #[test]
+    fn table_rejects_too_many_columns() {
+        let row = vec![TableCell::raw("x"); crate::blocks::MAX_TABLE_COLUMNS + 1];
+        let rows = vec![row];
+        let res = Table::new(rows).build();
+        assert!(res.is_err());
+        let msg = format!(
+            "table block rows support at most {} cells",
+            crate::blocks::MAX_TABLE_COLUMNS
+        );
+        assert_eq!(res.unwrap_err(), BuildError::message(msg));
+    }
+}

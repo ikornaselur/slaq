@@ -5,16 +5,27 @@ use crate::blocks::BuildError;
 
 fn is_https(url: &str) -> bool { url.starts_with("https://") }
 
-// https://docs.slack.dev/reference/block-kit/blocks/video-block
+/// Video block.
+///
+/// Embeds a video with title and preview thumbnail.
+///
+/// Constraints:
+/// - `video_url`, `thumbnail_url`, and optional `title_url` must use HTTPS.
+/// - `alt_text` must not be empty.
+/// - `title` and `description` (if provided) are limited to `MAX_VIDEO_TEXT_LEN` characters.
+///
+/// See: https://docs.slack.dev/reference/block-kit/blocks/video-block
 #[slaq_macros::block(kind = "video", validate = Self::validate)]
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Video {
+    /// Title displayed above the video.
     pub title: PlainText,
     pub video_url: String,
     pub thumbnail_url: String,
     pub alt_text: String,
     #[serde(skip_serializing_if = "Option::is_none", default)]
+    /// Optional description below the title.
     pub description: Option<PlainText>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub title_url: Option<String>,
@@ -70,3 +81,61 @@ impl Video {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn base() -> Video {
+        Video::new(
+            PlainText::new("Title"),
+            "https://example.com/video",
+            "https://example.com/thumb",
+            "alt",
+        )
+    }
+
+    #[test]
+    fn rejects_non_https_urls() {
+        let v = Video::new(
+            PlainText::new("Title"),
+            "http://example.com/video",
+            "https://example.com/thumb",
+            "alt",
+        );
+        assert_eq!(
+            v.build().unwrap_err(),
+            BuildError::message("video block video_url must use https scheme")
+        );
+
+        let v = Video::new(
+            PlainText::new("Title"),
+            "https://example.com/video",
+            "http://example.com/thumb",
+            "alt",
+        );
+        assert_eq!(
+            v.build().unwrap_err(),
+            BuildError::message("video block thumbnail_url must use https scheme")
+        );
+
+        let v = base().title_url("http://example.com/title");
+        assert_eq!(
+            v.build().unwrap_err(),
+            BuildError::message("video block title_url must use https scheme")
+        );
+    }
+
+    #[test]
+    fn rejects_empty_alt_text() {
+        let v = Video::new(
+            PlainText::new("Title"),
+            "https://example.com/video",
+            "https://example.com/thumb",
+            "   ",
+        );
+        assert_eq!(
+            v.build().unwrap_err(),
+            BuildError::message("video block alt_text must not be empty")
+        );
+    }
+}
