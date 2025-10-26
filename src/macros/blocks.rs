@@ -190,6 +190,63 @@ macro_rules! context {
     }};
 }
 
+/// Builds a markdown block. Usage: `markdown!(text [, block_id = ...])`.
+#[macro_export]
+macro_rules! markdown {
+    ($text:expr $(, block_id = $block_id:expr)? $(,)?) => {{
+        let mut builder = $crate::blocks::Markdown::new($text);
+        $( builder = builder.block_id($block_id); )?
+        builder.build()
+    }};
+}
+
+/// Builds an input block. Label is a string (plain_text). `element` must convert into `BlockElement`.
+/// Keys: `element` (required), `dispatch_action`, `hint`, `optional`, `block_id`.
+#[macro_export]
+macro_rules! input {
+    ($label:expr, element = $element:expr $(, $key:ident = $value:expr )* $(,)?) => {{
+        let be: $crate::blocks::BlockElement = ::core::convert::Into::<$crate::blocks::BlockElement>::into($element);
+        let mut __builder = $crate::blocks::Input::new($crate::blocks::PlainText::new($label), be);
+        $( input!(@apply __builder, $key, $value); )*
+        __builder.build()
+    }};
+    (@apply $b:ident, dispatch_action, $v:expr) => { $b = $b.dispatch_action($v); };
+    (@apply $b:ident, hint, $v:expr) => { $b = $b.hint($crate::blocks::PlainText::new($v)); };
+    (@apply $b:ident, optional, $v:expr) => { $b = $b.optional($v); };
+    (@apply $b:ident, block_id, $v:expr) => { $b = $b.block_id($v); };
+    (@apply $_b:ident, $unexpected:ident, $_v:expr) => {
+        compile_error!(concat!("unsupported input! argument: ", stringify!($unexpected)));
+    };
+}
+
+/// Builds a rich_text block from an elements expression or inline list.
+#[macro_export]
+macro_rules! rich_text {
+    ( elements = $elements:expr $(, block_id = $block_id:expr)? $(,)? ) => {{
+        let mut builder = $crate::blocks::RichText::new($elements);
+        $( builder = builder.block_id($block_id); )?
+        builder.build()
+    }};
+    ( [ $($elem:expr),+ ] $(, block_id = $block_id:expr)? $(,)? ) => {{
+        rich_text!(elements = vec![ $($elem),+ ] $(, block_id = $block_id )? )
+    }};
+}
+
+/// Builds a table block from a rows expression or inline list. Cells should be constructed via
+/// `TableCell::raw("...")` or `TableCell::rich(vec![...])`.
+#[macro_export]
+macro_rules! table {
+    ( rows = $rows:expr $(, column_settings = $cs:expr)? $(, block_id = $block_id:expr)? $(,)? ) => {{
+        let mut builder = $crate::blocks::Table::new($rows);
+        $( builder = builder.column_settings($cs); )?
+        $( builder = builder.block_id($block_id); )?
+        builder.build()
+    }};
+    ( [ $($row:expr),+ ] $(, column_settings = $cs:expr)? $(, block_id = $block_id:expr)? $(,)? ) => {{
+        table!(rows = vec![ $($row),+ ] $(, column_settings = $cs )? $(, block_id = $block_id )? )
+    }};
+}
+
 /// Builds an actions block from an inline list of element expressions.
 /// Each item must be convertible into `BlockElement` (e.g., `button!(...)`, `select!(...)`).
 #[macro_export]

@@ -1,4 +1,4 @@
-use slaq::{actions, context, context_actions, divider, file, header, image, mrkdwn, plain, section, video};
+use slaq::{actions, context, context_actions, datepicker, divider, file, header, image, input, markdown, mrkdwn, plain, rich_text, section, table, video};
 
 #[test]
 fn header_macro_matches_builder() {
@@ -134,6 +134,46 @@ fn context_macro_matches_builder() {
     .unwrap();
 
     assert_eq!(macro_block.to_value(), builder_block.to_value());
+}
+
+#[test]
+fn markdown_macro_matches_builder() {
+    let m = markdown!("Hello", block_id = "m1").unwrap();
+    let b = slaq::blocks::Markdown::new("Hello").block_id("m1").build().unwrap();
+    assert_eq!(m.to_value(), b.to_value());
+}
+
+#[test]
+fn input_macro_matches_builder() {
+    let elem = datepicker!("date");
+    let m = input!("Date", element = elem, hint = "Optional").unwrap();
+    let b = slaq::blocks::Input::new(slaq::blocks::PlainText::new("Date"),
+        slaq::blocks::BlockElement::from(slaq::blocks::elements::DatePickerElement::new("date")))
+        .hint(slaq::blocks::PlainText::new("Optional"))
+        .build()
+        .unwrap();
+    assert_eq!(m.to_value(), b.to_value());
+}
+
+#[test]
+fn table_macro_matches_builder() {
+    let rows = vec![
+        vec![slaq::blocks::TableCell::raw("A"), slaq::blocks::TableCell::raw("B")],
+        vec![slaq::blocks::TableCell::raw("C"), slaq::blocks::TableCell::raw("D")],
+    ];
+    let m = table!(rows = rows.clone(), block_id = "t1").unwrap();
+    let b = slaq::blocks::Table::new(rows).block_id("t1").build().unwrap();
+    assert_eq!(m.to_value(), b.to_value());
+}
+
+#[test]
+fn rich_text_macro_matches_builder() {
+    let elem = slaq::blocks::rich_text::RichTextElement::section(vec![
+        slaq::blocks::rich_text::RichTextNode::text("Hi"),
+    ]);
+    let m = rich_text!([elem.clone()], block_id = "r1").unwrap();
+    let b = slaq::blocks::RichText::new(vec![elem]).block_id("r1").build().unwrap();
+    assert_eq!(m.to_value(), b.to_value());
 }
 
 #[test]
