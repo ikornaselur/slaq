@@ -190,3 +190,34 @@ macro_rules! context {
     }};
 }
 
+/// Builds an actions block from an inline list of element expressions.
+/// Each item must be convertible into `BlockElement` (e.g., `button!(...)`, `select!(...)`).
+#[macro_export]
+macro_rules! actions {
+    ( elements = [ $($rest:expr),+ ] $(, block_id = $block_id:expr)? $(,)? ) => {{
+        let mut __items: ::std::vec::Vec<$crate::blocks::BlockElement> = ::std::vec::Vec::new();
+        $( __items.push(::core::convert::Into::<$crate::blocks::BlockElement>::into($rest)); )+
+        let mut builder = $crate::blocks::Actions::new(__items);
+        $( builder = builder.block_id($block_id); )?
+        builder.build()
+    }};
+    ( [ $($rest:expr),+ ] $(, block_id = $block_id:expr)? $(,)? ) => {{
+        actions!(elements = [ $($rest),+ ] $(, block_id = $block_id )? )
+    }};
+}
+
+/// Builds a context_actions block from an inline list of context action element expressions.
+/// Items should be `ContextActionElement` values (e.g., `ContextActionElement::feedback(...)`).
+#[macro_export]
+macro_rules! context_actions {
+    ( elements = [ $($rest:expr),+ ] $(, block_id = $block_id:expr)? $(,)? ) => {{
+        let mut __items: ::std::vec::Vec<$crate::blocks::ContextActionElement> = ::std::vec::Vec::new();
+        $( __items.push($rest); )+
+        let mut builder = $crate::blocks::ContextActions::new(__items);
+        $( builder = builder.block_id($block_id); )?
+        builder.build()
+    }};
+    ( [ $($rest:expr),+ ] $(, block_id = $block_id:expr)? $(,)? ) => {{
+        context_actions!(elements = [ $($rest),+ ] $(, block_id = $block_id )? )
+    }};
+}

@@ -1,4 +1,4 @@
-use slaq::{context, divider, file, header, image, mrkdwn, plain, section, video};
+use slaq::{actions, context, context_actions, divider, file, header, image, mrkdwn, plain, section, video};
 
 #[test]
 fn header_macro_matches_builder() {
@@ -133,5 +133,44 @@ fn context_macro_matches_builder() {
     .build()
     .unwrap();
 
+    assert_eq!(macro_block.to_value(), builder_block.to_value());
+}
+
+#[test]
+fn actions_macro_matches_builder() {
+    let select = slaq::blocks::elements::StaticSelectElement::new("sel")
+        .options(vec![slaq::blocks::SelectOption::new(slaq::blocks::PlainText::new("A"), "a")]);
+    let button = slaq::blocks::ButtonElement::new(slaq::blocks::PlainText::new("Go"), "go");
+
+    let macro_block = actions!([select, button], block_id = "act-1").unwrap();
+
+    let builder_block = slaq::blocks::Actions::new(vec![
+        slaq::blocks::BlockElement::from(
+            slaq::blocks::elements::StaticSelectElement::new("sel").options(vec![slaq::blocks::SelectOption::new(
+                slaq::blocks::PlainText::new("A"),
+                "a",
+            )]),
+        ),
+        slaq::blocks::BlockElement::from(slaq::blocks::ButtonElement::new(
+            slaq::blocks::PlainText::new("Go"),
+            "go",
+        )),
+    ])
+    .block_id("act-1")
+    .build()
+    .unwrap();
+
+    assert_eq!(macro_block.to_value(), builder_block.to_value());
+}
+
+#[test]
+fn context_actions_macro_matches_builder() {
+    use slaq::blocks::elements::{ContextActionElement, FeedbackButton};
+    let pos = FeedbackButton::new("👍", "positive");
+    let neg = FeedbackButton::new("👎", "negative");
+    let macro_block = context_actions!([ContextActionElement::feedback("fb_1", pos.clone(), neg.clone())]).unwrap();
+    let builder_block = slaq::blocks::ContextActions::new(vec![ContextActionElement::feedback("fb_1", pos, neg)])
+        .build()
+        .unwrap();
     assert_eq!(macro_block.to_value(), builder_block.to_value());
 }
