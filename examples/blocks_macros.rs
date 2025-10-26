@@ -1,10 +1,24 @@
 use slaq::blocks::BuildError;
-use slaq::{blocks, divider, fields, header, mrkdwn, section, video};
+use slaq::{blocks, context, divider, fields, file, header, image, mrkdwn, section, video};
 
 fn main() -> Result<(), BuildError> {
     let blocks = blocks![
         header!("Status Report"),
         divider!(),
+        file!(
+            external_id = "file-ext-123",
+        ),
+        image!(
+            alt_text = "Kittens",
+            image_url = "https://placekitten.com/200/300",
+            title = "Cute!",
+        ),
+        context!([
+            "Env: prod",
+            image("https://example.com/icon.png", "icon"),
+            plain("v1.2.3"),
+            mrkdwn("*Status:* green"),
+        ]),
         video!(
             title = "Highlights",
             video_url = "https://example.com/embed/abc",

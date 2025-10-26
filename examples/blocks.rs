@@ -11,8 +11,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .image_url("https://placekitten.com/200/300")
         .build()?;
     let context = Context::new(vec![
-        ContextElement::mrkdwn("*Environment*: production"),
-        ContextElement::mrkdwn("*Status*: green"),
+        ContextElement::plain_text("*Env:* prod"),
+        ContextElement::image("https://example.com/icon.png", "icon"),
+        ContextElement::plain_text("v1.2.3"),
+        ContextElement::mrkdwn("*Status:* green"),
     ])
     .build()?;
     let video = Video::new(
