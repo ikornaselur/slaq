@@ -1,0 +1,56 @@
+name: Publish Crates
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+jobs:
+  publish-macros:
+    name: Publish slaq_macros
+    if: startsWith(github.event.release.tag_name, 'slaq_macros-v') || startsWith(github.event.release.tag_name, 'slaq-macros-v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Publish slaq_macros
+        working-directory: slaq-macros
+        run: |
+          cargo publish
+
+  publish-slaq:
+    name: Publish slaq
+    if: startsWith(github.event.release.tag_name, 'slaq-v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Wait for slaq_macros availability
+        run: |
+          set -euo pipefail
+          TAG="${{ github.event.release.tag_name }}"   # e.g., slaq-v0.0.4
+          VERSION="${TAG#slaq-v}"
+          echo "Waiting for slaq_macros version ${VERSION} to appear on crates.io"
+          for i in $(seq 1 60); do
+            if curl -fsS https://crates.io/api/v1/crates/slaq_macros/${VERSION} >/dev/null; then
+              echo "slaq_macros ${VERSION} is available"
+              break
+            fi
+            echo "Not yet available, retry $i/60..."
+            sleep 10
+          done
+          # final check or fail
+          curl -fsS https://crates.io/api/v1/crates/slaq_macros/${VERSION} >/dev/null
+      - name: Publish slaq
+        run: |
+          cargo publish
+

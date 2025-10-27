@@ -1,0 +1,16 @@
+{
+  "include-component-in-tag": true,
+  "packages": {
+    ".": {
+      "release-type": "rust",
+      "package-name": "slaq"
+    },
+    "slaq-macros": {
+      "release-type": "rust",
+      "package-name": "slaq_macros"
+    }
+  },
+  "plugins": [
+    { "type": "cargo-workspace" }
+  ]
+}

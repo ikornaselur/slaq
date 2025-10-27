@@ -26,3 +26,9 @@ optional = true
 
 [dev-dependencies]
 slaq_macros = { version = "0.0.2", path = "slaq-macros" }
+
+[workspace]
+members = [
+    "slaq-macros",
+]
+resolver = "2"
