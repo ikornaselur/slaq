@@ -1,4 +1,4 @@
-//! Public macros are split by domain: text, blocks, and elements.
+//! Internal macro modules. Re-exported under `slaq::blocks::*`.
 
 mod blocks;
 mod elements;

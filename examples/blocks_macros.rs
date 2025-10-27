@@ -1,8 +1,9 @@
+use slaq::blocks;
 use slaq::blocks::BuildError;
-use slaq::{blocks, context, divider, fields, file, header, image, mrkdwn, section, video};
+use slaq::blocks::{context, divider, file, header, image, section, video};
 
 fn main() -> Result<(), BuildError> {
-    let blocks = blocks![
+    let blocks = blocks::blocks_vec![
         header!("Status Report"),
         divider!(),
         file!(external_id = "file-ext-123",),
@@ -27,10 +28,10 @@ fn main() -> Result<(), BuildError> {
             title_url = "https://example.com/watch",
         ),
         section!(
-            text = mrkdwn!("A message *with some rich text*"),
-            fields = fields![
-                mrkdwn!("*Environment:* production"),
-                mrkdwn!("*Status:* green"),
+            text = blocks::text::mrkdwn!("A message *with some rich text*"),
+            fields = blocks::text::fields![
+                blocks::text::mrkdwn!("*Environment:* production"),
+                blocks::text::mrkdwn!("*Status:* green"),
             ],
         ),
     ]?;

@@ -1,4 +1,5 @@
 /// Creates a `SelectOption` from text and value.
+#[doc(hidden)]
 #[macro_export]
 macro_rules! option {
     ($text:expr, $value:expr) => {
@@ -7,6 +8,7 @@ macro_rules! option {
 }
 
 /// Collects `SelectOption` items into a Vec<SelectOption>.
+#[doc(hidden)]
 #[macro_export]
 macro_rules! options {
     ( $($item:expr),+ $(,)? ) => {{
@@ -18,6 +20,7 @@ macro_rules! options {
 }
 
 /// Creates an `OptionGroup` with label and options.
+#[doc(hidden)]
 #[macro_export]
 macro_rules! option_group {
     ($label:expr, $options:expr) => {
@@ -26,6 +29,7 @@ macro_rules! option_group {
 }
 
 /// Builds a `ConfirmationDialog`.
+#[doc(hidden)]
 #[macro_export]
 macro_rules! confirm {
     ($title:expr, $text:expr, $confirm:expr, $deny:expr) => {
@@ -39,6 +43,7 @@ macro_rules! confirm {
 }
 
 /// Builds a button element with optional fields (style, url, value, confirm).
+#[doc(hidden)]
 #[macro_export]
 macro_rules! button {
     ($text:expr, $action_id:expr $(, $key:ident = $value:expr )* $(,)?) => {{
@@ -59,6 +64,7 @@ macro_rules! button {
 }
 
 // Selects
+#[doc(hidden)]
 #[macro_export]
 macro_rules! select {
     ($action_id:expr $(, $key:ident = $value:expr )* $(,)?) => {{
@@ -76,6 +82,7 @@ macro_rules! select {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! multiselect {
     ($action_id:expr $(, $key:ident = $value:expr )* $(,)?) => {{
@@ -94,6 +101,7 @@ macro_rules! multiselect {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! external_select {
     ($action_id:expr $(, $key:ident = $value:expr )* $(,)?) => {{
@@ -110,6 +118,7 @@ macro_rules! external_select {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! multi_external_select {
     ($action_id:expr $(, $key:ident = $value:expr )* $(,)?) => {{
@@ -225,6 +234,7 @@ macro_rules! multi_channels_select {
 }
 
 // Inputs (datepicker/timepicker/datetimepicker, plain/email/url/number)
+#[doc(hidden)]
 #[macro_export]
 macro_rules! datepicker {
     ($action_id:expr $(, $key:ident = $value:expr )* $(,)?) => {{
@@ -240,6 +250,7 @@ macro_rules! datepicker {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! timepicker {
     ($action_id:expr $(, $key:ident = $value:expr )* $(,)?) => {{
@@ -255,6 +266,7 @@ macro_rules! timepicker {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! datetimepicker {
     ($action_id:expr $(, $key:ident = $value:expr )* $(,)?) => {{
@@ -269,6 +281,7 @@ macro_rules! datetimepicker {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! plain_text_input {
     ($action_id:expr $(, $key:ident = $value:expr )* $(,)?) => {{
@@ -287,6 +300,7 @@ macro_rules! plain_text_input {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! email_input {
     ($action_id:expr $(, $key:ident = $value:expr )* $(,)?) => {{
@@ -301,6 +315,7 @@ macro_rules! email_input {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! url_input {
     ($action_id:expr $(, $key:ident = $value:expr )* $(,)?) => {{
@@ -315,6 +330,7 @@ macro_rules! url_input {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! number_input {
     ($action_id:expr $(, $key:ident = $value:expr )* $(,)?) => {{
@@ -333,6 +349,7 @@ macro_rules! number_input {
 }
 
 // Choices
+#[doc(hidden)]
 #[macro_export]
 macro_rules! checkboxes {
     ($action_id:expr $(, $key:ident = $value:expr )* $(,)?) => {{
@@ -354,6 +371,7 @@ macro_rules! checkboxes {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! radio_buttons {
     ($action_id:expr $(, $key:ident = $value:expr )* $(,)?) => {{
@@ -375,6 +393,7 @@ macro_rules! radio_buttons {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! overflow {
     ($action_id:expr $(, $key:ident = $value:expr )* $(,)?) => {{

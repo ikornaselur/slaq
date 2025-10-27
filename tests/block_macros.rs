@@ -1,6 +1,8 @@
-use slaq::{
-    actions, context, context_actions, datepicker, divider, file, header, image, input, markdown,
-    mrkdwn, plain, rich_text, section, table, video,
+use slaq::blocks::elements::datepicker;
+use slaq::blocks::text::{mrkdwn, plain};
+use slaq::blocks::{
+    actions, context, context_actions, divider, file, header, image, input, markdown, rich_text,
+    section, table, video,
 };
 
 #[test]

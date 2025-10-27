@@ -1,7 +1,7 @@
 //! Typed builders for Slack Block Kit blocks.
 //!
 //! This module is expanding to cover every block type with ergonomic builders
-//! and validations derived from Slack's documentation. 
+//! and validations derived from Slack's documentation.
 
 mod actions_block;
 mod context_actions_block;
@@ -33,6 +33,16 @@ pub use simple::{Divider, Header, Markdown};
 pub use table_block::{ColumnAlignment, ColumnSetting, Table, TableCell};
 pub use text::{MrkdwnText, PlainText, TextObject};
 pub use video_block::Video;
+
+// Macro re-exports under clear namespaces:
+// - Blocks: `slaq::blocks::markdown!()`, `slaq::blocks::divider!()`, etc.
+// - Elements: `slaq::blocks::elements::button!()`, `slaq::blocks::elements::select!()`, etc.
+// - Text helpers: `slaq::blocks::text::mrkdwn!()`, `slaq::blocks::text::plain!()`, `slaq::blocks::text::fields!()`
+#[doc(hidden)]
+pub use crate::{
+    actions, blocks_vec, context, context_actions, divider, file, header, image, input, markdown,
+    rich_text, section, table, video,
+};
 
 use serde::Serialize;
 use thiserror::Error;

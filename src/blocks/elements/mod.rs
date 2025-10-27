@@ -26,6 +26,16 @@ pub use selects::{
     MultiUsersSelectElement, StaticSelectElement, UsersSelectElement,
 };
 
+// Namespaced element macros under `slaq::blocks::elements::*` for clarity.
+#[doc(hidden)]
+pub use crate::{
+    button, channels_select, checkboxes, confirm, conversations_select, datepicker, datetimepicker,
+    email_input, external_select, multi_channels_select, multi_conversations_select,
+    multi_external_select, multi_users_select, multiselect, number_input, option, option_group,
+    options, overflow, plain_text_input, radio_buttons, select, timepicker, url_input,
+    users_select,
+};
+
 #[cfg(test)]
 mod tests {
     use super::*;

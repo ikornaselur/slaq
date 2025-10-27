@@ -1,10 +1,11 @@
-use slaq::{
-    blocks, button, datepicker, external_select, mrkdwn, option, options, overflow, section,
-    select, timepicker,
+use slaq::blocks::elements::{
+    button, datepicker, external_select, option, options, overflow, select, timepicker,
 };
+use slaq::blocks::text::mrkdwn;
+use slaq::blocks::{self, section};
 
 fn main() -> Result<(), slaq::blocks::BuildError> {
-    let blocks = blocks![
+    let blocks = blocks::blocks_vec![
         section!(
             text = mrkdwn!("Pick one from static options"),
             accessory = select!(

@@ -1,4 +1,5 @@
 /// Creates a `plain_text` object.
+#[doc(hidden)]
 #[macro_export]
 macro_rules! plain {
     ($text:expr) => {
@@ -7,6 +8,7 @@ macro_rules! plain {
 }
 
 /// Creates an mrkdwn text object. Optional `verbatim = bool`.
+#[doc(hidden)]
 #[macro_export]
 macro_rules! mrkdwn {
     ($text:expr $(, verbatim = $verbatim:expr)? $(,)?) => {{
@@ -17,6 +19,7 @@ macro_rules! mrkdwn {
 }
 
 /// Collects inline text objects into a `Vec<TextObject>` so callers don’t need `.into()`.
+#[doc(hidden)]
 #[macro_export]
 macro_rules! fields {
     ( $($item:expr),+ $(,)? ) => {{

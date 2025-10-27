@@ -102,6 +102,10 @@ impl From<String> for TextObject {
     }
 }
 
+// Namespaced text macros under `slaq::blocks::text::*` for clarity.
+#[doc(hidden)]
+pub use crate::{fields, mrkdwn, plain};
+
 #[cfg(test)]
 mod tests {
     use super::*;

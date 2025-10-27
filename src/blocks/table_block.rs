@@ -1,7 +1,7 @@
 use serde::Serialize;
 
 use crate::blocks::BuildError;
-use crate::blocks::rich_text;
+use crate::blocks::rich_text as rich_text_mod;
 
 /// Table block.
 ///
@@ -34,7 +34,7 @@ pub enum TableCell {
     RawText { text: String },
     /// A rich text cell composed of rich text elements.
     RichText {
-        elements: Vec<rich_text::RichTextElement>,
+        elements: Vec<rich_text_mod::RichTextElement>,
     },
 }
 
@@ -44,7 +44,7 @@ impl TableCell {
         TableCell::RawText { text: text.into() }
     }
     #[must_use]
-    pub fn rich(elements: impl Into<Vec<rich_text::RichTextElement>>) -> Self {
+    pub fn rich(elements: impl Into<Vec<rich_text_mod::RichTextElement>>) -> Self {
         TableCell::RichText {
             elements: elements.into(),
         }

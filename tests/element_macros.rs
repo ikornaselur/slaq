@@ -1,9 +1,10 @@
-use slaq::{
+use slaq::blocks::elements::{
     button, channels_select, checkboxes, confirm, conversations_select, datepicker, datetimepicker,
-    email_input, external_select, mrkdwn, multi_channels_select, multi_conversations_select,
+    email_input, external_select, multi_channels_select, multi_conversations_select,
     multi_external_select, multi_users_select, multiselect, number_input, option, options,
-    overflow, plain, plain_text_input, radio_buttons, select, timepicker, url_input, users_select,
+    overflow, plain_text_input, radio_buttons, select, timepicker, url_input, users_select,
 };
+use slaq::blocks::text::{mrkdwn, plain};
 
 #[test]
 fn option_and_options_macros_match_builders() {
@@ -106,6 +107,7 @@ fn select_macros_match_builders() {
 }
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn input_and_choice_macros_match_builders() {
     let dp = datepicker!("date", initial_date = "2025-01-01");
     let db = slaq::blocks::elements::DatePickerElement::new("date").initial_date("2025-01-01");

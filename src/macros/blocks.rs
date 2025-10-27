@@ -1,4 +1,5 @@
 /// Builds a header block from a string (treated as `plain_text`). Optional `block_id`.
+#[doc(hidden)]
 #[macro_export]
 macro_rules! header {
     ($text:expr $(, block_id = $block_id:expr)? $(,)?) => {{
@@ -9,6 +10,7 @@ macro_rules! header {
 }
 
 /// Builds a divider block. Optional `block_id`.
+#[doc(hidden)]
 #[macro_export]
 macro_rules! divider {
     ($(block_id = $block_id:expr)? $(,)?) => {{
@@ -21,6 +23,7 @@ macro_rules! divider {
 /// Builds a section block using named args.
 /// Supported keys: `text`, `fields`, `accessory`, `expand`, `block_id`.
 /// Note: Strings for `text` are treated as mrkdwn (Slack’s default for section).
+#[doc(hidden)]
 #[macro_export]
 macro_rules! section {
     ( $( $key:ident = $value:expr ),+ $(,)? ) => {{
@@ -41,6 +44,7 @@ macro_rules! section {
 /// Builds a video block with named args (any order).
 /// Required: `title`, `video_url`, `thumbnail_url`, `alt_text`.
 /// Optional: `description`, `title_url`, `provider_icon_url`, `provider_name`, `author_name`, `block_id`.
+#[doc(hidden)]
 #[macro_export]
 macro_rules! video {
     ( $( $key:ident = $value:expr ),+ $(,)? ) => {{
@@ -85,20 +89,26 @@ macro_rules! video {
     };
 }
 
-/// Collects Result<Block> values into a Result<Vec<Block>>.
+/// Collects `Result<Block>` values into a `Result<Vec<Block>>`.
+#[doc(hidden)]
 #[macro_export]
-macro_rules! blocks {
+macro_rules! blocks_vec {
     ($($block:expr),+ $(,)?) => {{
         let mut items = ::std::vec::Vec::new();
         $( items.push($block?); )+
-        ::std::result::Result::Ok(items)
+        ::std::result::Result::<_, $crate::blocks::BuildError>::Ok(items)
     }};
-    () => { ::std::result::Result::Ok(::std::vec::Vec::new()) };
+    () => {
+        ::std::result::Result::<::std::vec::Vec<$crate::blocks::Block>, $crate::blocks::BuildError>::Ok(
+            ::std::vec::Vec::new(),
+        )
+    };
 }
 
 /// Builds an image block with named args (any order).
 /// Required: `alt_text` and exactly one of (`image_url` | `slack_file_id`/`slack_file_url`).
 /// Optional: `title`, `block_id`.
+#[doc(hidden)]
 #[macro_export]
 macro_rules! image {
     ( $( $key:ident = $value:expr ),+ $(,)? ) => {{
@@ -137,6 +147,7 @@ macro_rules! image {
 /// Builds a file block with named args (any order).
 /// Required: `external_id`. Source defaults to `remote`.
 /// Optional: `block_id`.
+#[doc(hidden)]
 #[macro_export]
 macro_rules! file {
     ( $( $key:ident = $value:expr ),+ $(,)? ) => {{
@@ -159,6 +170,7 @@ macro_rules! file {
 /// Builds a context block from an inline list.
 /// Elements supported: `mrkdwn("...")`, `plain("...")`, `image(url, alt)`, or string literals.
 /// Default for string/text(...) is `plain_text` (for consistency with header!).
+#[doc(hidden)]
 #[macro_export]
 macro_rules! context {
     ( elements = [ $($rest:tt)* ] $(, block_id = $block_id:expr)? $(,)? ) => {{
@@ -191,6 +203,7 @@ macro_rules! context {
 }
 
 /// Builds a markdown block. Usage: `markdown!(text [, block_id = ...])`.
+#[doc(hidden)]
 #[macro_export]
 macro_rules! markdown {
     ($text:expr $(, block_id = $block_id:expr)? $(,)?) => {{
@@ -202,6 +215,7 @@ macro_rules! markdown {
 
 /// Builds an input block. Label is a string (`plain_text`). `element` must convert into `BlockElement`.
 /// Keys: `element` (required), `dispatch_action`, `hint`, `optional`, `block_id`.
+#[doc(hidden)]
 #[macro_export]
 macro_rules! input {
     ($label:expr, element = $element:expr $(, $key:ident = $value:expr )* $(,)?) => {{
@@ -220,6 +234,7 @@ macro_rules! input {
 }
 
 /// Builds a `rich_text` block from an elements expression or inline list.
+#[doc(hidden)]
 #[macro_export]
 macro_rules! rich_text {
     ( elements = $elements:expr $(, block_id = $block_id:expr)? $(,)? ) => {{
@@ -234,6 +249,7 @@ macro_rules! rich_text {
 
 /// Builds a table block from a rows expression or inline list. Cells should be constructed via
 /// `TableCell::raw("...")` or `TableCell::rich(vec![...])`.
+#[doc(hidden)]
 #[macro_export]
 macro_rules! table {
     ( rows = $rows:expr $(, column_settings = $cs:expr)? $(, block_id = $block_id:expr)? $(,)? ) => {{
@@ -249,6 +265,7 @@ macro_rules! table {
 
 /// Builds an actions block from an inline list of element expressions.
 /// Each item must be convertible into `BlockElement` (e.g., `button!(...)`, `select!(...)`).
+#[doc(hidden)]
 #[macro_export]
 macro_rules! actions {
     ( elements = [ $($rest:expr),+ ] $(, block_id = $block_id:expr)? $(,)? ) => {{
@@ -265,6 +282,7 @@ macro_rules! actions {
 
 /// Builds a `context_actions` block from an inline list of context action element expressions.
 /// Items should be `ContextActionElement` values (e.g., `ContextActionElement::feedback(...)`).
+#[doc(hidden)]
 #[macro_export]
 macro_rules! context_actions {
     ( elements = [ $($rest:expr),+ ] $(, block_id = $block_id:expr)? $(,)? ) => {{
