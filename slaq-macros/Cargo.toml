@@ -1,7 +1,7 @@
 [package]
 name = "slaq_macros"
 description = "Proc macros for slaq"
-version = "0.0.2"
+version = "0.0.4"
 edition = "2024"
 license = "MIT"
 
