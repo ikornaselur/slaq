@@ -2,11 +2,6 @@ name: Release Please
 
 on:
   workflow_dispatch:
-    inputs:
-      bootstrap_sha:
-        description: "Optional: baseline commit SHA for first run"
-        required: false
-        default: ""
   push:
     branches:
       - main
@@ -31,4 +26,3 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
           config-file: .release-please-config.json
           manifest-file: .release-please-manifest.json
-          bootstrap-sha: ${{ inputs.bootstrap_sha }}
