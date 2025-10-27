@@ -43,6 +43,14 @@ jobs:
   test:
     name: Tests
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default
+            cargo-features-args: ""
+          - name: transport-reqwest
+            cargo-features-args: "--features transport-reqwest"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -50,8 +58,8 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
-      - name: Run tests
+      - name: Run tests (${{ matrix.name }})
         env:
           RUST_BACKTRACE: 1
-        run: cargo test --all-features --workspace --locked
-
+        run: |
+          cargo test --workspace --locked ${{ matrix.cargo-features-args }}
