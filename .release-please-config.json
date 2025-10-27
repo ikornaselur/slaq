@@ -3,10 +3,12 @@
   "bootstrap-sha": "8b8ca2d50324e43b5014e82e62e9053c67fe7748",
   "packages": {
     ".": {
+      "component": "slaq",
       "release-type": "rust",
       "package-name": "slaq"
     },
     "slaq-macros": {
+      "component": "slaq_macros",
       "release-type": "rust",
       "package-name": "slaq_macros"
     }
