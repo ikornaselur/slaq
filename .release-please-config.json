@@ -1,6 +1,6 @@
 {
   "include-component-in-tag": true,
-  "bootstrap-sha": "8b8ca2d50324e43b5014e82e62e9053c67fe7748",
+  "separate-pull-requests": true,
   "packages": {
     ".": {
       "component": "slaq",
