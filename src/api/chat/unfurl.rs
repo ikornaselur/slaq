@@ -9,9 +9,7 @@ use serde_with::skip_serializing_none;
 #[derive(Debug, Clone, Serialize, Default)]
 #[slaq_macros::slack_api(
     path="/chat.unfurl",
-    chat_method=unfurl,
     response=UnfurlResponse,
-    call_alias="UnfurlCall"
 )]
 pub struct Unfurl {
     /// Channel ID of the message. Both `channel` and `ts` must be provided together, or `unfurl_id` and `source` must be provided together.

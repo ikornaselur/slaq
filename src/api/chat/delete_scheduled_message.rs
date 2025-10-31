@@ -9,9 +9,7 @@ use serde_with::skip_serializing_none;
 #[derive(Debug, Clone, Serialize, Default)]
 #[slaq_macros::slack_api(
     path="/chat.deleteScheduledMessage",
-    chat_method=delete_scheduled_message,
     response=DeleteScheduledMessageResponse,
-    call_alias="DeleteScheduledMessageCall"
 )]
 pub struct DeleteScheduledMessage {
     /// The channel the `scheduled_message` is posting to

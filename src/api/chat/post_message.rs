@@ -9,9 +9,7 @@ use serde_with::skip_serializing_none;
 #[derive(Debug, Clone, Serialize, Default)]
 #[slaq_macros::slack_api(
     path="/chat.postMessage",
-    chat_method=post_message,
     response=PostMessageResponse,
-    call_alias="PostMessageCall"
 )]
 pub struct PostMessage {
     /// An encoded ID or channel name that represents a channel, private group, or IM channel to send the message to. See below[0] for more details.

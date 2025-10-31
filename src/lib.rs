@@ -1,9 +1,10 @@
-//! Slaq: Typed Slack Web API builder with optional transport.
+//! Slaq: Typed Slack Web API builders with an optional transport.
 //!
-//! By default includes a blocking reqwest-based client.
-//! Disable default features for a build-only crate.
+//! The crate defaults to build-only (no HTTP client). Enable the
+//! `transport-reqwest` feature to opt-in to the blocking client.
 pub mod api;
 pub mod blocks;
+mod macros;
 
 /// Default Slack Web API base URL.
 pub const DEFAULT_BASE_URL: &str = "https://slack.com/api";
@@ -20,9 +21,7 @@ mod macro_tests {
 
     #[slaq_macros::slack_api(
         path="/dummy.method",
-        chat_method=dummy_call,
         response=DummyResp,
-        call_alias="DummyCall"
     )]
     #[derive(Debug, Clone, serde::Serialize, Default)]
     struct DummyMethod {

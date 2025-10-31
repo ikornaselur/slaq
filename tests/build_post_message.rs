@@ -30,8 +30,8 @@ fn build_post_message_with_options() {
         .username("bot")
         .mrkdwn(true)
         .blocks(vec![
-            blocks::Divider::new().build(),
-            blocks::Markdown::new("notes").build(),
+            blocks::Divider::new().build().expect("divider"),
+            blocks::Markdown::new("notes").build().expect("markdown"),
         ]);
     let req = payload.build_request();
 
